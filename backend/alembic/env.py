@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.core.config import get_settings
-from app.db.base import Base
+from app.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,7 +25,7 @@ if not database_url:
     raise RuntimeError("DATABASE_URL belum di-set, isi dulu di backend/.env")
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
-# Model SQLAlchemy nanti diimpor lewat app.db.base agar terbaca autogenerate
+# Base diimpor dari app.models supaya semua tabel sudah terdaftar di metadata
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
