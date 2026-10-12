@@ -1,0 +1,8 @@
+# Lisensi tiap paket dicatat di README bagian SBOM
+fastapi==0.143.0
+uvicorn==0.54.0
+SQLAlchemy[asyncio]==2.1.4
+alembic==1.20.0
+asyncpg==0.32.0
+pydantic==2.14.1
+pydantic-settings==2.15.0

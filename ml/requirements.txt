@@ -1,0 +1,8 @@
+# Lisensi tiap paket dicatat di README bagian SBOM
+numpy==2.5.4
+pandas==3.0.6
+scikit-learn==1.9.1
+lightgbm==4.7.0
+plotly==7.1.0
+nbformat==5.11.1
+ipykernel==7.4.0
