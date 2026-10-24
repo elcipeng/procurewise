@@ -8,31 +8,6 @@
 *.key
 
 # =========================================================
-# File kerja lokal dan AI assistant (bukan bagian dari kode)
-# =========================================================
-CLAUDE.md
-CLAUDE.local.md
-.claude/
-AGENTS.md
-GEMINI.md
-.cursor/
-.cursorrules
-.windsurfrules
-.aider*
-.continue/
-*handoff*
-*HANDOFF*
-*Handoff*
-/scripts/
-/notes/
-/scratch/
-/tmp/
-*.local.md
-*.scratch.*
-*.docx
-*.pdf
-
-# =========================================================
 # Python
 # =========================================================
 __pycache__/
