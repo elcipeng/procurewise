@@ -9,7 +9,7 @@ type Health = {
 function App() {
   const health = useQuery({
     queryKey: ['health'],
-    queryFn: async () => (await api.get<Health>('/health')).data,
+    queryFn: async () => (await api.get<{ data: Health }>('/health')).data.data,
     retry: false,
   })
 
