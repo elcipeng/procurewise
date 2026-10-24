@@ -1,0 +1,115 @@
+# Referensi harga, MOQ, dan lead time per material (ml/README.md bagian 4.2 dan 17).
+#
+# ref_price       median harga grosir (Rp per satuan) untuk pembelian sekitar qty median
+# price_p25/p75   kuartil harga listing, dipakai untuk sebaran price_level antar vendor.
+#                 Selama masih null, generator memakai sigma harga default 0,15
+# moq             MOQ grosir yang umum di listing
+# lead_time_days  masa pre-order atau estimasi pengerjaan, sudah termasuk pengiriman
+#
+# Semua nilai di bawah masih placeholder perkiraan kasar, belum dari data marketplace.
+# Sumber tiap nilai wajib dicatat di README utama setelah kalibrasi.
+
+B01:  # Handuk mandi katun 70x140 cm
+  ref_price: 35000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 24               # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+B02:  # Handuk muka katun 30x30 cm
+  ref_price: 6000       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 50               # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+B03:  # Sajadah tebal polos
+  ref_price: 45000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 20               # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+B04:  # Sajadah travel lipat
+  ref_price: 25000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 24               # TODO: kalibrasi
+  lead_time_days: 8     # TODO: kalibrasi
+
+B05:  # Tasbih kayu 33 butir
+  ref_price: 5000       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 100              # TODO: kalibrasi
+  lead_time_days: 5     # TODO: kalibrasi
+
+J01:  # Jasa bordir nama
+  ref_price: 7000       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 12               # TODO: kalibrasi
+  lead_time_days: 5     # TODO: kalibrasi
+
+J02:  # Jasa bordir logo atau motif
+  ref_price: 12000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 24               # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+J03:  # Jasa sablon DTF
+  ref_price: 10000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 12               # TODO: kalibrasi
+  lead_time_days: 4     # TODO: kalibrasi
+
+J04:  # Cetak kartu ucapan
+  ref_price: 1500       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 100              # TODO: kalibrasi
+  lead_time_days: 3     # TODO: kalibrasi
+
+J05:  # Cetak stiker label custom
+  ref_price: 300        # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 100              # TODO: kalibrasi
+  lead_time_days: 3     # TODO: kalibrasi
+
+P01:  # Rigid box hampers
+  ref_price: 18000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 50               # TODO: kalibrasi
+  lead_time_days: 10    # TODO: kalibrasi
+
+P02:  # Kotak duplex lipat
+  ref_price: 4000       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 100              # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+P03:  # Paper bag
+  ref_price: 3500       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 100              # TODO: kalibrasi
+  lead_time_days: 7     # TODO: kalibrasi
+
+P04:  # Tas spunbond (goodie bag)
+  ref_price: 3000       # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 50               # TODO: kalibrasi
+  lead_time_days: 6     # TODO: kalibrasi
+
+P05:  # Kertas serut (filler), per kg
+  ref_price: 35000      # TODO: kalibrasi
+  price_p25: null       # TODO: kalibrasi
+  price_p75: null       # TODO: kalibrasi
+  moq: 1                # TODO: kalibrasi
+  lead_time_days: 3     # TODO: kalibrasi

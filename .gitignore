@@ -86,3 +86,8 @@ desktop.ini
 !.vscode/extensions.json
 *.swp
 *.swo
+
+# =========================================================
+# Data hasil generator (bisa dibuat ulang dengan python -m generator)
+# =========================================================
+/ml/data/

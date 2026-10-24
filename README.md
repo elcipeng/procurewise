@@ -59,9 +59,10 @@ cd ml
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+python -m generator              # generate data sintetis ke ml/data/raw/ (seed default 15037)
 ```
 
-Notebook disimpan di `ml/notebooks/`. Kontribusi fitur (SHAP) dihitung langsung dari LightGBM lewat `predict(..., pred_contrib=True)` yang memakai algoritma TreeSHAP bawaan, jadi tidak perlu paket `shap`.
+Spesifikasi dan cara kerja generator data sintetis ada di [ml/README.md](ml/README.md). Notebook disimpan di `ml/notebooks/`. Kontribusi fitur (SHAP) dihitung langsung dari LightGBM lewat `predict(..., pred_contrib=True)` yang memakai algoritma TreeSHAP bawaan, jadi tidak perlu paket `shap`.
 
 ## Environment Variable
 
@@ -139,6 +140,7 @@ Ringkasan dependency transitif runtime: 136 MIT, 13 ISC (paket d3 dari recharts 
 | lightgbm | 4.7.0 | MIT |
 | plotly | 7.1.0 | MIT |
 | nbformat | 5.11.1 | BSD-3-Clause |
+| PyYAML | 6.0.3 | MIT |
 | ipykernel | 7.4.0 | BSD-3-Clause |
 
 Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_extensions (PSF-2.0).

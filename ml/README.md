@@ -2,7 +2,31 @@
 
 Folder ini berisi generator data sintetis, EDA, preprocessing, training, dan evaluasi model ranking vendor.
 
-Dokumen ini adalah **spesifikasi generator data sintetis**. Spesifikasi ditulis sebelum implementasi supaya asumsi, parameter, dan cara pembuatan label bisa direview dulu.
+Dokumen ini adalah **spesifikasi generator data sintetis**. Spesifikasi ditulis sebelum implementasi supaya asumsi, parameter, dan cara pembuatan label bisa direview dulu. Nilai parameter di dokumen ini sudah disamakan dengan hasil kalibrasi di `generator/config.py`.
+
+## Menjalankan Generator
+
+Dari folder `ml/` dengan virtualenv aktif:
+
+```bash
+python -m generator                         # seed default 15037, output ke ml/data/raw/
+python -m generator --seed 42 --out data/raw
+```
+
+Generator menulis CSV, lalu langsung menjalankan validasi dan mencetak ringkasan (jumlah baris, on-time rate per vendor, sebaran harga, distribusi grade, dan pengecekan kewajaran). Exit code 1 kalau ada constraint DB yang dilanggar. Data belum di-seed ke database.
+
+| Modul | Isi |
+| --- | --- |
+| `generator/config.py` | Semua parameter, nomor bagian di komentar mengacu ke dokumen ini |
+| `generator/price_reference.yaml` | Harga, sebaran harga, MOQ, dan lead time per material (bertanda `# TODO: kalibrasi`) |
+| `generator/seasons.py` | Kalender musim ramai dan libur Lebaran |
+| `generator/vendors.py` | Vendor, karakter tersembunyi, arketipe, cold start, penawaran |
+| `generator/requests.py` | Procurement request dan filter keras |
+| `generator/simulation.py` | Simulasi hasil pesanan, dipakai bersama oleh transaksi dan label |
+| `generator/transactions.py` | Pemilihan vendor historis dan transaksi |
+| `generator/labels.py` | Label relevansi dari simulasi kontrafaktual |
+| `generator/schema.py` | Cerminan kolom, enum, dan constraint 7 tabel DB |
+| `generator/validate.py` | Validasi constraint DB, konsistensi file, pengecekan kewajaran, ringkasan |
 
 ## Daftar Isi
 
@@ -188,18 +212,18 @@ Untuk setiap pasangan vendor dan material yang ditawarkan:
 unit_price_dasar   = harga_referensi[m] * price_level[v] * LogNormal(0, 0.05)
 moq                = MOQ_dasar[m] * pilih({0.5, 1, 2}, peluang {0.3, 0.5, 0.2})
 lead_time_asli     = lead_time_dasar[m] * lead_time_factor[v]
-quoted_lead_time   = round(lead_time_asli * (0.70 + 0.35 * true_reliability[v]))
+quoted_lead_time   = round(lead_time_asli * (0.95 + 0.65 * true_reliability[v]))
 weekly_capacity    = round(kapasitas_dasar[m] * capacity_factor[v])
 ```
 
-Poin penting ada di `quoted_lead_time`. Vendor dengan keandalan 0,30 menjanjikan sekitar 80% dari lead time aslinya, sedangkan vendor dengan keandalan 0,95 menjanjikan sekitar 103%. Jadi vendor yang kurang andal terlihat lebih cepat di penawaran.
+Poin penting ada di `quoted_lead_time`. `lead_time_asli` adalah lead time median, padahal pengiriman aktual masih ditambah noise dan gangguan (bagian 11). Vendor dengan keandalan 0,95 memberi buffer besar (janji sekitar 1,57 kali median), sedangkan vendor dengan keandalan 0,30 hanya sekitar 1,15 kali median walaupun variasinya paling besar. Jadi vendor yang kurang andal terlihat lebih cepat di penawaran dan lebih sering telat. Konstanta 0,95 dan 0,65 adalah hasil **[KALIBRASI]** supaya tingkat tepat waktu keseluruhan masuk target bagian 16. Nilai awal 0,70 dan 0,35 menghasilkan tepat waktu hanya 24%.
 
 Harga dan lead time berubah sedikit mengikuti waktu. Snapshot penawaran pada tanggal `t` dihitung dari nilai dasar di atas:
 
 ```
 unit_price(t)        = unit_price_dasar * (1 + 0.003)^(bulan sejak awal) * (1 + 0.05 * s(t))
 quoted_lead_time(t)  = round(quoted_lead_time * (1 + 0.15 * s(t)))
-is_available(t)      ~ Bernoulli(0.92 - 0.10 * s(t))
+is_available(t)      ~ Bernoulli(0.95 - 0.10 * s(t))
 ```
 
 - Inflasi 0,3% per bulan **[ASUMSI]**.
@@ -248,24 +272,25 @@ Setiap order historis Firaza diawali satu procurement request. Request ini menja
 
 ### 8.1 Waktu Request
 
-Untuk tiap material `m`, request dibangkitkan dengan proses Poisson harian dengan laju `laju_dasar[m] / 30 * (1 + 1,5 * s(t))`. Hari Minggu dan periode libur Lebaran tidak menghasilkan request **[ASUMSI]**.
+Untuk tiap material `m`, request dibangkitkan dengan proses Poisson harian dengan laju `laju_dasar[m] / 26 * (1 + 1,5 * s(t))`. Hari Minggu dan periode libur Lebaran tidak menghasilkan request **[ASUMSI]**. Pembagi 26 (jumlah hari kerja per bulan) dipakai supaya hari Minggu yang dilewati tidak mengurangi volume bulanan.
 
 ### 8.2 Atribut Request
 
 | Atribut | Cara membangkitkan |
 | --- | --- |
+| `request_date` | Tanggal hasil proses Poisson di bagian 8.1. Disimpan di kolom `procurement_requests.request_date` dan menjadi acuan `slack_days` serta cutoff anti leakage. `created_at` hanya untuk audit |
 | `qty` | `LogNormal(ln(qty_median[m] * (1 + 0,5 * s(t))), 0,6)`, dibulatkan ke kelipatan 10 (kelipatan 1 untuk satuan kg), minimal 10 (minimal 1 untuk kg) |
 | Tingkat urgensi | 25% ketat, 50% normal, 25% santai **[ASUMSI]** |
-| `needed_by` | `request_date + round(lead_time_dasar[m] * u + 7 * max(0, qty / kapasitas_dasar[m] - 1))`. Nilai `u` diambil dari Uniform(0,6, 1,0) untuk ketat, Uniform(1,0, 1,8) untuk normal, dan Uniform(1,8, 3,5) untuk santai |
+| `needed_by` | `request_date + round(lead_time_dasar[m] * u + 7 * max(0, qty / kapasitas_dasar[m] - 1))`. Nilai `u` diambil dari Uniform(1,1, 1,5) untuk ketat, Uniform(1,5, 2,2) untuk normal, dan Uniform(2,2, 3,5) untuk santai **[KALIBRASI]**. Rentang awal 0,6 s.d. 1,0 untuk ketat membuat hampir semua kandidat telat sehingga grup tidak memberi sinyal ranking |
 | `priority` | Bergantung urgensi (tabel di bawah) |
-| `max_budget` | Dengan peluang 70%: `qty * harga_referensi[m] * Uniform(0,95, 1,35)`, dibulatkan ke Rp1.000. Sisanya kosong (tanpa batas) **[ASUMSI]** |
+| `max_budget` | Dengan peluang 70%: `qty * harga_pasar[m](t) * Uniform(1,05, 1,45)`, dibulatkan ke Rp1.000. `harga_pasar` adalah harga referensi setelah inflasi dan kenaikan musim ramai (rumus `unit_price(t)` di bagian 6 tanpa `price_level`). Sisanya kosong (tanpa batas) **[KALIBRASI]** |
 | `notes` | Kosong atau kalimat template pendek, misalnya "untuk pesanan hampers corporate" |
 | `created_by` | Acak dari user seed (1 owner, 1 admin) |
-| `status` | `selesai` untuk semua request historis |
+| `status` | `completed` untuk semua request historis |
 
-Peluang `priority` (nilai: `tinggi`, `normal`, `rendah`) **[ASUMSI]**:
+Peluang `priority` (nilai: `high`, `normal`, `low`) **[ASUMSI]**:
 
-| Urgensi | tinggi | normal | rendah |
+| Urgensi | high | normal | low |
 | --- | --- | --- | --- |
 | Ketat | 70% | 25% | 5% |
 | Normal | 20% | 60% | 20% |
@@ -299,11 +324,12 @@ Transaksi historis mencerminkan pilihan Firaza di masa lalu, yang tidak selalu o
 Di antara kandidat yang lolos filter:
 
 ```
-skor_pilih[v] = -1.5 * z_harga[v] + 0.8 * ln(1 + jumlah_order_sebelumnya[v]) + Gumbel(0, 1)
+skor_pilih[v] = -1.5 * z_harga[v] + 0.4 * ln(1 + jumlah_order_sebelumnya[v]) + Gumbel(0, 1)
 ```
 
 - `z_harga` adalah z-score harga penawaran di dalam grup.
 - Dengan peluang 15% vendor dipilih acak seragam (eksplorasi) **[ASUMSI]**.
+- Bobot vendor langganan 0,4 adalah hasil **[KALIBRASI]**. Dengan bobot awal 0,8, Firaza terkunci di beberapa vendor murah sampai satu vendor mendapat sekitar 19% dari semua order.
 - Vendor dengan skor tertinggi dipilih.
 
 Dampaknya:
@@ -343,24 +369,24 @@ delivered_date    = order_date + ceil(hari_total)
 ### 11.3 Cacat
 
 ```
-p_cacat = cacat_dasar[m] * exp(3.5 * (0.65 - true_quality)) * (1 + 0.4 * s(t)) * (1 + 0.5 * [beban > 1])
+p_cacat = cacat_dasar[m] * exp(3.5 * (0.60 - true_quality)) * (1 + 0.4 * s(t)) * (1 + 0.5 * [beban > 1])
 p_cacat = min(p_cacat, 0.30)
 p_draw  ~ Beta(60 * p_cacat, 60 * (1 - p_cacat))
 qty_defect ~ Binomial(qty, p_draw)
 ```
 
-Untuk bahan dengan cacat dasar 2%, vendor berkualitas 0,95 menghasilkan sekitar 0,7% cacat dan vendor berkualitas 0,35 sekitar 5,7%. Distribusi Beta menambah variasi antar pesanan supaya tidak terlalu mulus. Faktor `beban > 1` mewakili pesanan yang dikerjakan terburu-buru karena melebihi kapasitas.
+Untuk bahan dengan cacat dasar 2%, vendor berkualitas 0,95 menghasilkan sekitar 0,6% cacat dan vendor berkualitas 0,35 sekitar 4,8%. Pivot 0,60 adalah hasil **[KALIBRASI]** (awalnya 0,65, rata-rata cacat 4,3%). Distribusi Beta menambah variasi antar pesanan supaya tidak terlalu mulus. Faktor `beban > 1` mewakili pesanan yang dikerjakan terburu-buru karena melebihi kapasitas.
 
 ### 11.4 Rating Kualitas
 
 Rating 1 sampai 5 diberikan admin Firaza setelah barang diterima:
 
 ```
-rating_latent  = 1.2 + 3.6 * true_quality - 25 * (qty_defect / qty) - 0.12 * max(0, delay_days) + Normal(0, 0.45)
+rating_latent  = 1.8 + 3.0 * true_quality - 10 * (qty_defect / qty) - 0.12 * max(0, delay_days) + Normal(0, 0.45)
 quality_rating = clip(round(rating_latent), 1, 5)
 ```
 
-Rating bergantung pada kualitas asli dan juga pada pengalaman (cacat dan telat). Jadi rating adalah sinyal yang berisik, bukan salinan `true_quality`.
+Kualitas 0,35 s.d. 0,95 menghasilkan rating dasar sekitar 2,9 s.d. 4,7. Koefisien awal (1,2, 3,6, dan 25) membuat rata-rata rating banyak vendor di bawah 2 sehingga diubah **[ASUMSI]**. Rating bergantung pada kualitas asli dan juga pada pengalaman (cacat dan telat). Jadi rating adalah sinyal yang berisik, bukan salinan `true_quality`.
 
 ### 11.5 Pembatalan
 
@@ -422,19 +448,19 @@ Bobot menurut `priority` **[ASUMSI]**:
 
 | priority | w_waktu | w_cacat | w_biaya |
 | --- | --- | --- | --- |
-| tinggi | 0,60 | 0,25 | 0,15 |
+| high | 0,60 | 0,25 | 0,15 |
 | normal | 0,40 | 0,30 | 0,30 |
-| rendah | 0,25 | 0,30 | 0,45 |
+| low | 0,25 | 0,30 | 0,45 |
 
 **Langkah 3, grade.**
 
 | Grade | Kondisi |
 | --- | --- |
-| 3 | `skor_hasil >= 0,85` |
-| 2 | `0,70 <= skor_hasil < 0,85` |
-| 1 | `skor_hasil < 0,70` |
+| 3 | `skor_hasil >= 0,90` |
+| 2 | `0,76 <= skor_hasil < 0,90` |
+| 1 | `skor_hasil < 0,76` |
 
-Ambang 0,85 dan 0,70 adalah nilai awal **[KALIBRASI]**. Ambang disetel sekali sampai distribusi grade mendekati target di [bagian 16](#16-pengecekan-kewajaran), lalu dibekukan sebelum training dimulai.
+Ambang 0,90 dan 0,76 adalah hasil **[KALIBRASI]** (nilai awal 0,85 dan 0,70). Ambang disetel sekali sampai distribusi grade mendekati target di [bagian 16](#16-pengecekan-kewajaran), lalu dibekukan sebelum training dimulai.
 
 ### 13.3 Kenapa Ini Bukan "Rumus Skor"
 
@@ -448,15 +474,15 @@ Rumus di langkah 2 bekerja di atas **hasil sebenarnya** (peluang tepat waktu, ca
 
 Generator juga bisa membuat set skenario tambahan di periode test. Untuk beberapa kombinasi material dan qty, dibuat dua versi request yang identik kecuali `needed_by` dan `priority`:
 
-- versi urgent: `u = 0,7`, `priority = tinggi`
-- versi santai: `u = 3,0`, `priority = rendah`
+- versi urgent: `u = 0,7`, `priority = high`
+- versi santai: `u = 3,0`, `priority = low`
 
 Set ini tidak masuk transaksi. Gunanya hanya untuk menguji apakah ranking berubah sesuai konteks.
 
 ## 14. Seed dan Reproducibility
 
-- Seed utama: `MASTER_SEED = 15037` (Batch 15, grup I037).
-- Generator memakai `numpy.random.SeedSequence(MASTER_SEED).spawn(7)` lalu memberi satu `Generator` (PCG64) untuk setiap komponen, dengan urutan tetap:
+- Seed utama: `DEFAULT_SEED = 15037` (Batch 15, grup I037). Bisa diganti lewat `--seed`.
+- Generator memakai `numpy.random.SeedSequence(seed).spawn(7)` lalu memberi satu `Generator` (PCG64) untuk setiap komponen, dengan urutan tetap:
 
 | Urutan | Komponen |
 | --- | --- |
@@ -470,31 +496,42 @@ Set ini tidak masuk transaksi. Gunanya hanya untuk menguji apakah ranking beruba
 
 Dengan aliran terpisah, mengubah satu komponen (misalnya K pada label) tidak menggeser angka acak komponen lain.
 
-- Semua parameter di dokumen ini disimpan di satu file konfigurasi di dalam `ml/`. Generator mencetak ringkasan parameter dan hash file konfigurasi ke log setiap kali dijalankan.
+- Parameter disimpan di `generator/config.py`, sedangkan harga, MOQ, dan lead time di `generator/price_reference.yaml`. Hash kedua file dicetak dan disimpan di `_manifest.json` setiap kali generator dijalankan.
+- Seed yang sama menghasilkan file yang identik byte per byte. `_manifest.json` mencatat SHA-256 tiap file untuk membuktikannya.
 - Versi numpy dan pandas di-pin di `requirements.txt`, karena algoritma sampling bisa berubah antar versi mayor.
 
 ## 15. Output Generator
 
-Semua file CSV, ditulis ke `ml/data/`.
+Semua file ditulis ke `ml/data/raw/` (folder `ml/data/` di-gitignore karena bisa dibuat ulang).
 
-| File | Isi | Dipakai untuk |
+**Tabel DB.** Kolom, urutan kolom, dan nilai enum sama persis dengan 7 tabel di database. Siap di-seed apa adanya.
+
+| File | Isi |
+| --- | --- |
+| `users.csv` | 1 owner dan 1 admin fiktif |
+| `materials.csv` | 15 material |
+| `vendors.csv` | 28 vendor, tanpa karakter tersembunyi |
+| `vendor_offers.csv` | Snapshot penawaran per 30 September 2026 |
+| `procurement_requests.csv` | Request historis, termasuk `request_date`. Status `completed` kalau ada transaksi, `cancelled` kalau tidak ada kandidat yang lolos filter |
+| `transactions.csv` | Transaksi historis dengan `request_id` |
+| `recommendations.csv` | Header saja. Tabel ini diisi oleh model, bukan generator |
+
+**File tambahan.** Berawalan `_`, tidak di-seed ke database.
+
+| File | Isi | Boleh jadi fitur? |
 | --- | --- | --- |
-| `materials.csv` | Kolom tabel `materials` + kode material | Seed database, fitur |
-| `vendors.csv` | Kolom tabel `vendors` (tanpa karakter tersembunyi) | Seed database, fitur |
-| `vendor_offers.csv` | Snapshot penawaran per 30 September 2026 | Seed database |
-| `users.csv` | 1 owner dan 1 admin fiktif | Seed database |
-| `transactions.csv` | Kolom tabel `transactions` + `request_id` | Seed database, fitur histori |
-| `requests.csv` | Request historis + tingkat urgensi + split | Training dan evaluasi |
-| `candidates.csv` | Satu baris per request dan vendor: snapshot penawaran, status filter, alasan gugur, `p_tepat`, `e_cacat`, `e_biaya`, `skor_hasil`, `grade` | Training, evaluasi, metrik bisnis |
-| `scenarios.csv` | Set skenario urgent vs santai beserta kandidat dan hasil simulasinya | Uji skenario |
-| `hidden/vendor_traits.csv` | Karakter tersembunyi, nilai z, arketipe, `onboard_date` | Hanya simulasi dan analisis |
+| `_candidates.csv` | Satu baris per (request, vendor): snapshot penawaran saat request (harga, MOQ, janji lead time, kapasitas, ketersediaan), `is_eligible`, `filter_reasons` (format JSON seperti kolom DB), `chosen` | Ya, kecuali `chosen` |
+| `_labels.csv` | Satu baris per (request, vendor) yang lolos filter: `p_tepat`, `e_cacat`, `e_biaya`, `skor_hasil`, `grade` | Tidak, hanya label dan evaluasi |
+| `_request_meta.csv` | `split`, `urgency`, `season_intensity`, jumlah kandidat, `is_training_group` | `season_intensity` boleh, sisanya untuk split dan analisis |
+| `_hidden_vendor_traits.csv` | Karakter tersembunyi, nilai z, jenis vendor, arketipe, `onboard_date` | Tidak |
+| `_manifest.json` | Seed, hash konfigurasi, jumlah baris, SHA-256 tiap file | |
 
-Aturan untuk `hidden/vendor_traits.csv`:
+Aturan untuk `_hidden_vendor_traits.csv` dan `_labels.csv`:
 
-- Tidak boleh di-join ke tabel fitur. Pipeline preprocessing akan punya pengecekan otomatis bahwa tidak ada kolom karakter tersembunyi (`price_level`, `true_quality`, `true_reliability`, `lead_time_factor`, `capacity_factor`, `archetype`) di matriks fitur.
+- Tidak boleh di-join ke tabel fitur. Pipeline preprocessing akan punya pengecekan otomatis bahwa tidak ada kolom karakter tersembunyi (`price_level`, `true_quality`, `true_reliability`, `lead_time_factor`, `capacity_factor`, `archetype`) atau kolom label di matriks fitur.
 - Tidak di-seed ke database.
 
-Kolom `p_tepat`, `e_cacat`, `e_biaya`, dan `skor_hasil` di `candidates.csv` juga berasal dari karakter tersembunyi, jadi kolom ini hanya untuk label dan evaluasi, bukan fitur.
+Set skenario urgent vs santai (bagian 13.5) belum diimplementasikan. Set ini akan ditambahkan saat tahap evaluasi.
 
 ## 16. Pengecekan Kewajaran
 
@@ -516,7 +553,26 @@ Setelah generate, script mengecek angka-angka berikut. Kalau ada yang di luar ta
 | Grup dengan semua kandidat ber-grade sama | di bawah 15% (grup seperti ini tidak memberi sinyal ranking) |
 | Kolom tersembunyi di file publik | tidak ada |
 
-Hasil pengecekan dan ringkasan statistik disimpan di notebook EDA.
+Selain pengecekan di atas, validasi otomatis mengecek semua constraint DB (kolom, NOT NULL, PK, FK, unique, enum, CHECK, panjang VARCHAR) dan konsistensi antar file (label sama dengan kandidat lolos, vendor terpilih termasuk kandidat lolos, status request sesuai transaksi). Pelanggaran constraint DB membuat generator keluar dengan exit code 1. Pengecekan kewajaran hanya berupa peringatan.
+
+Hasil dengan seed default 15037:
+
+| Pengecekan | Hasil |
+| --- | --- |
+| Jumlah transaksi | 2.050 |
+| Korelasi `price_level` dan `true_quality` | 0,44 |
+| Tepat waktu terhadap `promised_date` | 75,0% |
+| Selisih tepat waktu normal vs musim ramai | 14,4 poin persen |
+| Tingkat cacat rata-rata | 3,6% |
+| Pesanan batal | 2,8% |
+| Kandidat gugur filter keras | 26,3% |
+| Request layak jadi grup training | 92,4% |
+| Grade 0 / 1 / 2 / 3 | 19,0% / 26,2% / 38,0% / 16,8% |
+| Grup training dengan semua grade sama | 14,1% |
+
+Kalibrasi dilakukan dengan seed default. Karena vendornya hanya 28, seed lain bisa menghasilkan dunia yang cukup berbeda. Dari seed 1, 2, 3, 42, 43, dan 15037, tiga seed lolos semua pengecekan dan sisanya meleset satu sampai dua pengecekan (paling jauh grup dengan grade sama 26,9% pada seed 43). Untuk training dan laporan dipakai seed default.
+
+Statistik lengkap akan dibahas di notebook EDA.
 
 ## 17. Kalibrasi dari Marketplace
 
@@ -527,6 +583,8 @@ Parameter bertanda **[MP]** diisi dari listing marketplace dengan cara berikut:
 3. Pakai harga tier grosir yang paling dekat dengan qty median di bagian 4.2.
 4. Catat harga, MOQ, dan masa pre-order atau estimasi pengerjaan per listing.
 5. Hitung median, p25, dan p75 harga, median MOQ, dan median masa pre-order.
+
+Hasilnya diisi ke `generator/price_reference.yaml` (ganti nilai bertanda `# TODO: kalibrasi`). Kalau `price_p25` dan `price_p75` semua material sudah terisi, generator otomatis memakai sigma harga dari data marketplace. Setelah itu generator dijalankan ulang dan pengecekan kewajaran dicek lagi.
 
 Tabel yang perlu diisi (akan dipindah ke bagian sitasi README utama):
 
