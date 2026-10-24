@@ -109,6 +109,8 @@ Dependency runtime (ikut ke bundle aplikasi):
 | @tanstack/react-query | 5.104.2 | MIT |
 | axios | 1.20.0 | MIT |
 | recharts | 3.10.1 | MIT |
+| react-router | 7.18.4 | MIT |
+| sonner | 2.0.8 | MIT |
 | radix-ui | 1.8.0 | MIT |
 | class-variance-authority | 0.7.1 | Apache-2.0 |
 | cn | 0.4.0 | MIT |
@@ -130,7 +132,7 @@ Dependency development (hanya dipakai saat build dan pengembangan):
 | @types/react | 19.3.0 | MIT |
 | @types/react-dom | 19.3.0 | MIT |
 
-Ringkasan dependency transitif runtime: 136 MIT, 13 ISC (paket d3 dari recharts dan lucide-react), 1 Apache-2.0, 1 BSD-3-Clause, 1 0BSD.
+Ringkasan dependency transitif runtime: 140 MIT, 13 ISC (paket d3 dari recharts dan lucide-react), 1 Apache-2.0, 1 BSD-3-Clause, 1 0BSD. Paket `next-themes` yang ikut terpasang bersama komponen toast shadcn dilepas karena aplikasi hanya memakai satu tema.
 
 ### ML (`ml/requirements.txt`)
 

@@ -1,27 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-
-type Health = {
-  status: string
-  database: string
-}
+import { Navigate, Route, Routes } from 'react-router'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { MaterialsPage } from '@/pages/MaterialsPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
+import { VendorsPage } from '@/pages/VendorsPage'
 
 function App() {
-  const health = useQuery({
-    queryKey: ['health'],
-    queryFn: async () => (await api.get<{ data: Health }>('/health')).data.data,
-    retry: false,
-  })
-
-  let statusText = 'Memeriksa koneksi backend...'
-  if (health.isError) statusText = 'Backend tidak dapat dihubungi'
-  if (health.data) statusText = `Backend: ${health.data.status}, database: ${health.data.database}`
-
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-2 p-6">
-      <h1 className="text-2xl font-semibold">ProcureWise</h1>
-      <p className="text-sm text-muted-foreground">{statusText}</p>
-    </main>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<Navigate to="/vendor" replace />} />
+        <Route path="vendor" element={<VendorsPage />} />
+        <Route path="material" element={<MaterialsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   )
 }
 
