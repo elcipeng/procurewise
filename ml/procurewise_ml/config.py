@@ -109,3 +109,38 @@ RANKING_K = 3
 MIN_ELIGIBLE_CANDIDATES = 2
 SPLITS = ("train", "val", "test")
 RANDOM_BASELINE_SEED = 0
+
+# ---------------------------------------------------------------------------
+# segmen evaluasi
+# ---------------------------------------------------------------------------
+# request dianggap ketat kalau median slack_days kandidat lolos <= nilai ini.
+# 0 berarti janji lead time vendor yang tipikal sudah menghabiskan semua waktu sampai needed_by
+TIGHT_SLACK_DAYS = 0
+BOOTSTRAP_SAMPLES = 2000
+BOOTSTRAP_SEED = 0
+
+# ---------------------------------------------------------------------------
+# lightgbm lambdarank (tahap m1)
+# ---------------------------------------------------------------------------
+MODEL_VERSION = "lgbm-v1"
+LGBM_BASE_PARAMS = {
+    "objective": "lambdarank",
+    "metric": "ndcg",
+    "n_estimators": 2000,
+    "subsample": 1.0,
+    "colsample_bytree": 1.0,
+    "reg_lambda": 1.0,
+    "random_state": 0,
+    "deterministic": True,
+    "force_row_wise": True,
+    "n_jobs": 1,
+    "verbose": -1,
+}
+EARLY_STOPPING_ROUNDS = 100
+# tuning kecil, dipilih dari ndcg@3 di grup informatif split val
+LGBM_TUNING_GRID = {
+    "learning_rate": (0.03, 0.1),
+    "num_leaves": (7, 15, 31),
+    "min_child_samples": (10, 40),
+}
+STABILITY_SEEDS = (1, 2, 3, 42, 43)

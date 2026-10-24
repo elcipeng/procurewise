@@ -45,8 +45,10 @@ python -m procurewise_ml.leakage_check    # cek kebocoran data pada fitur
 | `procurewise_ml/baselines.py` | Weighted sum, TOPSIS bobot tetap, TOPSIS bobot dari priority |
 | `procurewise_ml/evaluation.py` | NDCG@3, Hit@1, MRR, metrik bisnis vendor peringkat 1, cakupan grup |
 | `procurewise_ml/leakage_check.py` | Uji statis, perturbasi data masa depan, hitung ulang brute force, korelasi fitur dengan label |
+| `procurewise_ml/ranker.py` | Training LightGBM LambdaRank (fit di train, early stopping dan tuning di val), simpan dan muat model, `pred_contrib` |
+| `procurewise_ml/stability.py` | Jalankan pipeline yang sama di seed lain dengan hyperparameter tetap |
 
-Modul ini tidak membaca `_hidden_vendor_traits.csv`. Hasil baseline ada di `notebooks/02_baseline.ipynb`.
+Modul ini tidak membaca `_hidden_vendor_traits.csv`. Hasil baseline ada di `notebooks/02_baseline.ipynb`, dan model utama di `notebooks/03_lightgbm.ipynb`. Model tersimpan di `ml/models/lgbm_v1.txt` dengan metadata `ml/models/lgbm_v1.json`.
 
 ## Daftar Isi
 

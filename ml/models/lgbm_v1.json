@@ -1,0 +1,111 @@
+{
+  "model_version": "lgbm-v1",
+  "created": "2026-10-24",
+  "lightgbm_version": "4.7.0",
+  "objective": "lambdarank",
+  "params": {
+    "objective": "lambdarank",
+    "metric": "ndcg",
+    "n_estimators": 2000,
+    "subsample": 1.0,
+    "colsample_bytree": 1.0,
+    "reg_lambda": 1.0,
+    "random_state": 0,
+    "deterministic": true,
+    "force_row_wise": true,
+    "n_jobs": 1,
+    "verbose": -1,
+    "learning_rate": 0.1,
+    "num_leaves": 31,
+    "min_child_samples": 40
+  },
+  "best_iteration": 30,
+  "feature_columns": [
+    "unit_price",
+    "price_rel_median",
+    "total_cost",
+    "quoted_lead_time_days",
+    "moq_ratio",
+    "on_time_rate",
+    "avg_delay_days",
+    "defect_rate",
+    "avg_rating",
+    "n_transactions",
+    "days_since_last_order",
+    "has_history",
+    "slack_days",
+    "qty_capacity_ratio",
+    "priority_code",
+    "is_peak_season"
+  ],
+  "label": "grade 0 sampai 3 dari _labels.csv",
+  "data": {
+    "seed": 15037,
+    "config_hash": "7b699cf7fe6d",
+    "train": "fit",
+    "val": "early stopping dan tuning",
+    "test": "evaluasi akhir sekali"
+  },
+  "tuning_grid": {
+    "learning_rate": [
+      0.03,
+      0.1
+    ],
+    "num_leaves": [
+      7,
+      15,
+      31
+    ],
+    "min_child_samples": [
+      10,
+      40
+    ]
+  },
+  "metrics": {
+    "val_informatif": {
+      "n_grup": 319.0,
+      "ndcg@3": 0.9805886159612163,
+      "hit@1": 0.9655172413793104,
+      "mrr": 0.9818181818181818
+    },
+    "test_informatif": {
+      "n_grup": 194.0,
+      "ndcg@3": 0.9605072190067243,
+      "hit@1": 0.8814432989690721,
+      "mrr": 0.933848797250859
+    },
+    "test_semua": {
+      "n_grup": 218.0,
+      "ndcg@3": 0.9648550481069015,
+      "hit@1": 0.8944954128440367,
+      "mrr": 0.941131498470948
+    },
+    "test_weighted_sum_informatif": {
+      "ndcg@3": 0.9295477468737521,
+      "hit@1": 0.8350515463917526,
+      "mrr": 0.9080756013745704
+    },
+    "bootstrap_vs_weighted_sum": {
+      "informatif ndcg@3": {
+        "selisih": 0.03095947213297221,
+        "ci_95_bawah": 0.013939433142203358,
+        "ci_95_atas": 0.04679774761889986
+      },
+      "informatif hit@1": {
+        "selisih": 0.04639175257731959,
+        "ci_95_bawah": 0.0,
+        "ci_95_atas": 0.0979381443298969
+      },
+      "semua grup ndcg@3": {
+        "selisih": 0.02755108987980096,
+        "ci_95_bawah": 0.012670442456828863,
+        "ci_95_atas": 0.041448948463525856
+      },
+      "semua grup hit@1": {
+        "selisih": 0.04128440366972477,
+        "ci_95_bawah": 0.0,
+        "ci_95_atas": 0.08256880733944955
+      }
+    }
+  }
+}

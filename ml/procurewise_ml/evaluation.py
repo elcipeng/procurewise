@@ -125,3 +125,77 @@ def reference_scores(df: pd.DataFrame) -> dict[str, pd.Series]:
     historical = df["chosen"].astype(float).where(eligible)
     oracle = (df["grade"] + df["skor_hasil"] / 10).where(eligible)
     return {"acak": random_score, "pilihan_historis": historical, "oracle": oracle}
+
+
+def group_metrics(df: pd.DataFrame, scores: pd.Series, k: int = config.RANKING_K) -> pd.DataFrame:
+    """metrik per grup ranking (satu baris per request)."""
+    return _group_metrics(rank_candidates(df, scores), k)
+
+
+def request_segments(df: pd.DataFrame) -> pd.DataFrame:
+    """segmen per request dari fitur yang terlihat, untuk breakdown evaluasi."""
+    eligible = df[df["is_eligible"]]
+    per_request = eligible.groupby("request_id").agg(
+        priority_code=("priority_code", "first"),
+        median_slack=("slack_days", "median"),
+        is_peak_season=("is_peak_season", "first"),
+        material_category=("material_category", "first"),
+    )
+    codes = {code: name for name, code in config.PRIORITY_CODES.items()}
+    return pd.DataFrame({
+        "priority": per_request["priority_code"].map(codes),
+        "slack": np.where(per_request["median_slack"] <= config.TIGHT_SLACK_DAYS, "ketat", "longgar"),
+        "musim": np.where(per_request["is_peak_season"] == 1, "puncak", "normal"),
+        "kategori": per_request["material_category"],
+    }, index=per_request.index)
+
+
+def segment_compare(
+    df: pd.DataFrame, scores: dict[str, pd.Series], split: str, informative_only: bool = True,
+    k: int = config.RANKING_K,
+) -> pd.DataFrame:
+    """ndcg@k dan hit@1 per segmen untuk setiap model di satu split."""
+    segments = request_segments(df)
+    tables = []
+    for name, score in scores.items():
+        groups = group_metrics(df, score, k)
+        groups = groups[groups["split"] == split]
+        if informative_only:
+            groups = groups[groups["informative"]]
+        groups = groups.join(segments.drop(columns="kategori"))
+        for column in ("priority", "slack", "musim", "material_category"):
+            part = groups.groupby(column).agg(
+                n_grup=("mrr", "size"), ndcg=(f"ndcg_at_{k}", "mean"), hit=("hit_at_1", "mean"))
+            part.index = [f"{column}={value}" for value in part.index]
+            tables.append(part.assign(model=name))
+    out = pd.concat(tables).reset_index(names="segmen")
+    wide = out.pivot(index="segmen", columns="model", values=["ndcg", "hit"])
+    wide.columns = [f"{metric}@{k}_{model}" if metric == "ndcg" else f"hit@1_{model}" for metric, model in wide.columns]
+    wide.insert(0, "n_grup", out.drop_duplicates("segmen").set_index("segmen")["n_grup"])
+    return wide
+
+
+def paired_bootstrap(
+    df: pd.DataFrame, score: pd.Series, reference: pd.Series, split: str, informative_only: bool = True,
+    n_samples: int = config.BOOTSTRAP_SAMPLES, seed: int = config.BOOTSTRAP_SEED, k: int = config.RANKING_K,
+) -> pd.DataFrame:
+    """selisih metrik model dikurangi pembanding dengan ci 95% dari bootstrap berpasangan per grup."""
+    a, b = group_metrics(df, score, k), group_metrics(df, reference, k)
+    keep = a["split"] == split
+    if informative_only:
+        keep &= a["informative"]
+    a, b = a[keep], b.loc[a[keep].index]
+    rng = np.random.default_rng(seed)
+    picks = rng.integers(0, len(a), size=(n_samples, len(a)))
+    rows = {}
+    for label, column in ((f"ndcg@{k}", f"ndcg_at_{k}"), ("hit@1", "hit_at_1")):
+        diff = (a[column] - b[column]).to_numpy()
+        boot = diff[picks].mean(axis=1)
+        rows[label] = {
+            "n_grup": len(a),
+            "selisih": diff.mean(),
+            "ci_95_bawah": np.quantile(boot, 0.025),
+            "ci_95_atas": np.quantile(boot, 0.975),
+            "p_selisih_le_0": (boot <= 0).mean(),
+        }
+    return pd.DataFrame(rows).T
