@@ -41,6 +41,8 @@ uvicorn app.main:app --reload
 
 Migrasi database memakai Alembic (`alembic upgrade head`). URL database dibaca dari `DATABASE_URL`, bukan dari `alembic.ini`.
 
+Untuk mengisi database dengan data sintetis, generate data dulu di `ml/` (lihat bagian ML), lalu dari folder `backend/` jalankan `python scripts/seed.py`. Script ini mengosongkan semua tabel (termasuk `recommendations`) lalu mengisi ulang 6 tabel dalam satu transaksi, jadi aman dijalankan berulang kali.
+
 ### Frontend
 
 ```bash
@@ -141,6 +143,7 @@ Ringkasan dependency transitif runtime: 136 MIT, 13 ISC (paket d3 dari recharts 
 | plotly | 7.1.0 | MIT |
 | nbformat | 5.11.1 | BSD-3-Clause |
 | PyYAML | 6.0.3 | MIT |
+| nbclient | 0.11.0 | BSD-3-Clause |
 | ipykernel | 7.4.0 | BSD-3-Clause |
 
 Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_extensions (PSF-2.0).

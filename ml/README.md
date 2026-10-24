@@ -28,6 +28,26 @@ Generator menulis CSV, lalu langsung menjalankan validasi dan mencetak ringkasan
 | `generator/schema.py` | Cerminan kolom, enum, dan constraint 7 tabel DB |
 | `generator/validate.py` | Validasi constraint DB, konsistensi file, pengecekan kewajaran, ringkasan |
 
+## Dataset Fitur, Baseline, dan Evaluasi
+
+Setelah data mentah ada, dari folder `ml/`:
+
+```bash
+python -m procurewise_ml.build_dataset    # fitur + label + split ke ml/data/processed/
+python -m procurewise_ml.leakage_check    # cek kebocoran data pada fitur
+```
+
+| Modul | Isi |
+| --- | --- |
+| `procurewise_ml/config.py` | Daftar fitur, kalender musim ramai, bobot baseline, pengaturan evaluasi |
+| `procurewise_ml/features.py` | Fitur penawaran, histori, dan konteks. Fungsi murni, dipakai juga oleh backend |
+| `procurewise_ml/filters.py` | Filter keras, hasilnya dicek sama dengan generator |
+| `procurewise_ml/baselines.py` | Weighted sum, TOPSIS bobot tetap, TOPSIS bobot dari priority |
+| `procurewise_ml/evaluation.py` | NDCG@3, Hit@1, MRR, metrik bisnis vendor peringkat 1, cakupan grup |
+| `procurewise_ml/leakage_check.py` | Uji statis, perturbasi data masa depan, hitung ulang brute force, korelasi fitur dengan label |
+
+Modul ini tidak membaca `_hidden_vendor_traits.csv`. Hasil baseline ada di `notebooks/02_baseline.ipynb`.
+
 ## Daftar Isi
 
 1. [Tujuan dan Prinsip](#1-tujuan-dan-prinsip)
@@ -499,6 +519,16 @@ Dengan aliran terpisah, mengubah satu komponen (misalnya K pada label) tidak men
 - Parameter disimpan di `generator/config.py`, sedangkan harga, MOQ, dan lead time di `generator/price_reference.yaml`. Hash kedua file dicetak dan disimpan di `_manifest.json` setiap kali generator dijalankan.
 - Seed yang sama menghasilkan file yang identik byte per byte. `_manifest.json` mencatat SHA-256 tiap file untuk membuktikannya.
 - Versi numpy dan pandas di-pin di `requirements.txt`, karena algoritma sampling bisa berubah antar versi mayor.
+
+### Seed 15037 sebagai Data Utama
+
+Data dari seed 15037 dipakai sebagai data utama untuk EDA (`notebooks/01_eda.ipynb`), training, laporan, dan isi database Neon. Alasannya:
+
+1. Parameter bertanda **[KALIBRASI]** disetel di seed ini, dan kesebelas pengecekan kewajaran di bagian 16 masuk target. Seed lain yang diuji (1, 2, 3, 42, dan 43) meleset satu sampai dua pengecekan.
+2. Nilainya ditetapkan dari identitas proyek (Batch 15, grup I037) sebelum ada model yang dilatih. Jadi seed ini tidak dipilih karena membuat hasil model terlihat bagus.
+3. Dengan satu seed tetap, angka di notebook, laporan, dan aplikasi selalu sama dan bisa dicek ulang siapa saja.
+
+Karena vendornya hanya 28, satu seed bisa saja kebetulan "ramah" untuk model tertentu. Karena itu evaluasi model nanti juga dijalankan ulang di beberapa seed lain (minimal 1, 2, 3, 42, dan 43) dengan pipeline dan hyperparameter yang sama. Yang dilaporkan adalah rata-rata dan sebaran NDCG@3, Hit@1, MRR, serta selisihnya terhadap baseline. Model dianggap stabil kalau keunggulannya terhadap baseline konsisten di semua seed, bukan hanya di seed 15037.
 
 ## 15. Output Generator
 
