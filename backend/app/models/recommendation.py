@@ -13,7 +13,10 @@ class Recommendation(Base):
 
     __tablename__ = "recommendations"
     __table_args__ = (
-        UniqueConstraint("request_id", "vendor_id", name="uq_recommendations_request_vendor"),
+        # Satu request bisa di-ranking ulang dengan versi model lain tanpa menimpa hasil lama
+        UniqueConstraint(
+            "request_id", "vendor_id", "model_version", name="uq_recommendations_request_vendor_model"
+        ),
         CheckConstraint("rank IS NULL OR rank >= 1", name="rank_positive"),
         # Kandidat lolos punya rank dan skor, kandidat gugur punya alasan dan tanpa rank
         CheckConstraint(
@@ -24,7 +27,7 @@ class Recommendation(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # Tanpa index terpisah, sudah tercakup unique constraint (request_id, vendor_id)
+    # Tanpa index terpisah, sudah tercakup unique constraint yang diawali request_id
     request_id: Mapped[int] = mapped_column(
         ForeignKey("procurement_requests.id", ondelete="CASCADE")
     )

@@ -1,8 +1,8 @@
 """create initial tables
 
-Revision ID: 8bb152e33c0b
+Revision ID: 6cec70a6dbf6
 Revises: 
-Create Date: 2026-10-12 16:07:34.577880
+Create Date: 2026-10-12 16:15:57.792851
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '8bb152e33c0b'
+revision: str = '6cec70a6dbf6'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -65,23 +65,25 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('material_id', sa.Integer(), nullable=False),
     sa.Column('qty', sa.Integer(), nullable=False),
+    sa.Column('request_date', sa.Date(), server_default=sa.text('CURRENT_DATE'), nullable=False),
     sa.Column('needed_by', sa.Date(), nullable=False),
     sa.Column('priority', sa.String(length=20), nullable=False),
     sa.Column('max_budget', sa.Numeric(precision=14, scale=2), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=False),
-    sa.Column('status', sa.String(length=20), server_default='baru', nullable=False),
+    sa.Column('status', sa.String(length=20), server_default='new', nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.CheckConstraint("priority IN ('tinggi', 'normal', 'rendah')", name=op.f('ck_procurement_requests_priority')),
-    sa.CheckConstraint("status IN ('baru', 'direkomendasikan', 'selesai', 'dibatalkan')", name=op.f('ck_procurement_requests_status')),
+    sa.CheckConstraint("priority IN ('high', 'normal', 'low')", name=op.f('ck_procurement_requests_priority')),
+    sa.CheckConstraint("status IN ('new', 'recommended', 'completed', 'cancelled')", name=op.f('ck_procurement_requests_status')),
     sa.CheckConstraint('max_budget IS NULL OR max_budget > 0', name=op.f('ck_procurement_requests_max_budget_positive')),
+    sa.CheckConstraint('needed_by >= request_date', name=op.f('ck_procurement_requests_needed_by_after_request')),
     sa.CheckConstraint('qty > 0', name=op.f('ck_procurement_requests_qty_positive')),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], name=op.f('fk_procurement_requests_created_by_users'), ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['material_id'], ['materials.id'], name=op.f('fk_procurement_requests_material_id_materials'), ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_procurement_requests'))
     )
-    op.create_index(op.f('ix_procurement_requests_created_at'), 'procurement_requests', ['created_at'], unique=False)
     op.create_index(op.f('ix_procurement_requests_material_id'), 'procurement_requests', ['material_id'], unique=False)
+    op.create_index(op.f('ix_procurement_requests_request_date'), 'procurement_requests', ['request_date'], unique=False)
     op.create_index(op.f('ix_procurement_requests_status'), 'procurement_requests', ['status'], unique=False)
     op.create_table('vendor_offers',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -121,7 +123,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['request_id'], ['procurement_requests.id'], name=op.f('fk_recommendations_request_id_procurement_requests'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['vendor_id'], ['vendors.id'], name=op.f('fk_recommendations_vendor_id_vendors'), ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_recommendations')),
-    sa.UniqueConstraint('request_id', 'vendor_id', name='uq_recommendations_request_vendor')
+    sa.UniqueConstraint('request_id', 'vendor_id', 'model_version', name='uq_recommendations_request_vendor_model')
     )
     op.create_table('transactions',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -169,8 +171,8 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_vendor_offers_material_id'), table_name='vendor_offers')
     op.drop_table('vendor_offers')
     op.drop_index(op.f('ix_procurement_requests_status'), table_name='procurement_requests')
+    op.drop_index(op.f('ix_procurement_requests_request_date'), table_name='procurement_requests')
     op.drop_index(op.f('ix_procurement_requests_material_id'), table_name='procurement_requests')
-    op.drop_index(op.f('ix_procurement_requests_created_at'), table_name='procurement_requests')
     op.drop_table('procurement_requests')
     op.drop_index(op.f('ix_vendors_category'), table_name='vendors')
     op.drop_table('vendors')
