@@ -74,11 +74,36 @@ Spesifikasi dan cara kerja generator data sintetis ada di [ml/README.md](ml/READ
 | `backend/.env` | `CORS_ORIGINS` | Origin frontend yang diizinkan, dipisah koma |
 | `backend/.env` | `ENVIRONMENT` | `development` atau `production` |
 | `backend/.env` | `GEMINI_API_KEY` | API key Gemini untuk penjelasan rekomendasi. Kosong berarti penjelasan memakai template |
-| `backend/.env` | `GEMINI_MODEL` | Model Gemini, default `gemini-2.5-flash` |
+| `backend/.env` | `GEMINI_MODEL` | Model Gemini, default `gemini-4-hydrogen` |
 | `backend/.env` | `GEMINI_TIMEOUT_SECONDS` | Batas waktu per percobaan ke Gemini, default 20 detik |
 | `frontend/.env` | `VITE_API_BASE_URL` | Base URL backend termasuk prefix `/api/v1` |
 
 File `.env` tidak boleh di-commit. Yang di-commit hanya `.env.example`.
+
+## Deploy
+
+| Bagian | Layanan | Konfigurasi |
+| --- | --- | --- |
+| Backend | Render (Web Service, Python) | root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, health check `/api/v1/health` |
+| Frontend | Vercel (Vite) | root directory `frontend`, build `npm run build`, output `dist`. `vercel.json` mengarahkan semua rute ke `index.html` supaya rute seperti `/kebutuhan/2103` bisa dibuka langsung |
+| Database | Neon PostgreSQL | migrasi dijalankan dari lokal dengan `alembic upgrade head` |
+
+Backend membutuhkan folder `ml/` dari repo yang sama, karena modul `procurewise_ml` (filter keras dan fitur) dan file model `ml/models/lgbm_v1.txt` dipakai saat inference. Di Render, lokasinya diatur lewat environment variable:
+
+| Variabel (Render) | Nilai |
+| --- | --- |
+| `PYTHON_VERSION` | `3.14.6` |
+| `DATABASE_URL` | URL koneksi Neon |
+| `CORS_ORIGINS` | URL frontend di Vercel, contoh `https://procurewise.vercel.app` |
+| `ENVIRONMENT` | `production` |
+| `ML_DIR` | `/opt/render/project/src/ml` |
+| `ML_MODEL_DIR` | `/opt/render/project/src/ml/models` |
+| `GEMINI_API_KEY` | API key Gemini |
+| `GEMINI_MODEL` | model Gemini yang dipakai |
+
+| Variabel (Vercel) | Nilai |
+| --- | --- |
+| `VITE_API_BASE_URL` | URL backend Render ditambah `/api/v1`, contoh `https://procurewise-api.onrender.com/api/v1` |
 
 ## SBOM (Software Bill of Materials)
 

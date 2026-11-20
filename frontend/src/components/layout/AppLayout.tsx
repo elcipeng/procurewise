@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ServerStatus } from './ServerStatus'
+import { SlowServerNotice } from './SlowServerNotice'
 import { Brand, SidebarNav } from './SidebarNav'
 
 export function AppLayout() {
@@ -36,6 +37,7 @@ export function AppLayout() {
             <ServerStatus />
           </div>
         </header>
+        <SlowServerNotice />
 
         <main className="mx-auto w-full max-w-content px-4 py-6 sm:px-6 lg:px-8">
           {/* key per halaman supaya error di satu halaman hilang saat pindah halaman */}

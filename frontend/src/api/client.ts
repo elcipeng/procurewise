@@ -1,13 +1,16 @@
 import axios, { type AxiosResponse, isAxiosError } from 'axios'
 import type { ApiEnvelope, FieldError } from '@/types/api'
+import { trackSlowRequests } from './slowRequests'
 
-const REQUEST_TIMEOUT_MS = 15000
+// cukup lama untuk menunggu server render yang baru bangun dari tidur
+const REQUEST_TIMEOUT_MS = 60_000
 const NETWORK_ERROR_MESSAGE = 'Server tidak dapat dihubungi. Periksa koneksi lalu coba lagi.'
 
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1',
   timeout: REQUEST_TIMEOUT_MS,
 })
+trackSlowRequests(http)
 
 export class ApiError extends Error {
   readonly status: number
