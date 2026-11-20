@@ -4,8 +4,7 @@ import type { VendorInput } from '@/types/vendor'
 
 const VENDORS_KEY = ['vendors'] as const
 
-export const useVendors = () =>
-  useQuery({ queryKey: VENDORS_KEY, queryFn: async () => (await listVendors()).data })
+export const useVendors = () => useQuery({ queryKey: VENDORS_KEY, queryFn: async () => (await listVendors()).data })
 
 function useInvalidateVendors() {
   const queryClient = useQueryClient()

@@ -13,7 +13,14 @@ type TablePaginationProps = {
   onPageSizeChange: (size: number) => void
 }
 
-export function TablePagination({ page, pageCount, pageSize, total, onPageChange, onPageSizeChange }: TablePaginationProps) {
+export function TablePagination({
+  page,
+  pageCount,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+}: TablePaginationProps) {
   const first = (page - 1) * pageSize + 1
   const last = Math.min(page * pageSize, total)
 

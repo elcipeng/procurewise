@@ -54,7 +54,12 @@ export function MaterialsPage() {
       sortValue: (m) => m.name,
       cell: (m) => <span className="block min-w-48">{m.name}</span>,
     },
-    { id: 'category', header: 'Kategori', sortValue: (m) => CATEGORY_LABELS[m.category], cell: (m) => CATEGORY_LABELS[m.category] },
+    {
+      id: 'category',
+      header: 'Kategori',
+      sortValue: (m) => CATEGORY_LABELS[m.category],
+      cell: (m) => CATEGORY_LABELS[m.category],
+    },
     { id: 'unit', header: 'Satuan', sortValue: (m) => m.unit, cell: (m) => UNIT_LABELS[m.unit] },
     {
       id: 'updated_at',

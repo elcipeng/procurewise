@@ -32,9 +32,7 @@ export function VendorsPage() {
   const [deactivating, setDeactivating] = useState<Vendor>()
 
   const rows = vendors.data?.filter(
-    (v) =>
-      (category === ALL || v.category === category) &&
-      (status === ALL || v.is_active === (status === 'active')),
+    (v) => (category === ALL || v.category === category) && (status === ALL || v.is_active === (status === 'active')),
   )
 
   const openForm = (vendor?: Vendor) => {
@@ -66,7 +64,12 @@ export function VendorsPage() {
         </div>
       ),
     },
-    { id: 'category', header: 'Kategori', sortValue: (v) => CATEGORY_LABELS[v.category], cell: (v) => CATEGORY_LABELS[v.category] },
+    {
+      id: 'category',
+      header: 'Kategori',
+      sortValue: (v) => CATEGORY_LABELS[v.category],
+      cell: (v) => CATEGORY_LABELS[v.category],
+    },
     { id: 'city', header: 'Kota', sortValue: (v) => v.city, cell: (v) => v.city },
     {
       id: 'payment_terms',
@@ -78,7 +81,9 @@ export function VendorsPage() {
       id: 'status',
       header: 'Status',
       sortValue: (v) => (v.is_active ? 0 : 1),
-      cell: (v) => <StatusBadge tone={v.is_active ? 'success' : 'neutral'} label={v.is_active ? 'Aktif' : 'Nonaktif'} />,
+      cell: (v) => (
+        <StatusBadge tone={v.is_active ? 'success' : 'neutral'} label={v.is_active ? 'Aktif' : 'Nonaktif'} />
+      ),
     },
     {
       id: 'updated_at',
