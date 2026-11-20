@@ -73,7 +73,9 @@ Spesifikasi dan cara kerja generator data sintetis ada di [ml/README.md](ml/READ
 | `backend/.env` | `DATABASE_URL` | URL Postgres. Format `postgresql://` dan `sslmode=require` dari Neon/Supabase otomatis diubah ke format asyncpg |
 | `backend/.env` | `CORS_ORIGINS` | Origin frontend yang diizinkan, dipisah koma |
 | `backend/.env` | `ENVIRONMENT` | `development` atau `production` |
-| `backend/.env` | `GEMINI_API_KEY` | Disiapkan untuk fitur penjelasan, belum dipakai |
+| `backend/.env` | `GEMINI_API_KEY` | API key Gemini untuk penjelasan rekomendasi. Kosong berarti penjelasan memakai template |
+| `backend/.env` | `GEMINI_MODEL` | Model Gemini, default `gemini-2.5-flash` |
+| `backend/.env` | `GEMINI_TIMEOUT_SECONDS` | Batas waktu per percobaan ke Gemini, default 20 detik |
 | `frontend/.env` | `VITE_API_BASE_URL` | Base URL backend termasuk prefix `/api/v1` |
 
 File `.env` tidak boleh di-commit. Yang di-commit hanya `.env.example`.
@@ -96,10 +98,13 @@ Aturan proyek: dependency hanya boleh berlisensi MIT, BSD, atau Apache 2.0. Lise
 | numpy | 2.5.4 | BSD-3-Clause (beberapa komponen 0BSD, MIT, Zlib, CC0) |
 | pandas | 3.0.6 | BSD-3-Clause |
 | lightgbm | 4.7.0 | MIT |
+| google-genai | 3.6.1 | Apache-2.0 |
 
-numpy, pandas, dan lightgbm dipakai untuk inference ranking lewat modul `ml/procurewise_ml`, dengan versi yang sama seperti `ml/requirements.txt`.
+numpy, pandas, dan lightgbm dipakai untuk inference ranking lewat modul `ml/procurewise_ml`, dengan versi yang sama seperti `ml/requirements.txt`. google-genai adalah SDK resmi Gemini untuk penjelasan rekomendasi dan hanya dipanggil dari backend.
 
 Dependency transitif: annotated-doc (MIT), annotated-types (MIT), anyio (MIT), click (BSD-3-Clause), greenlet (MIT AND PSF-2.0), h11 (MIT), idna (BSD-3-Clause), Mako (MIT), MarkupSafe (BSD-3-Clause), opentelemetry-api (Apache-2.0), pydantic_core (MIT), python-dateutil (BSD-3-Clause), python-dotenv (BSD-3-Clause), scipy (BSD-3-Clause), starlette (BSD-3-Clause), typing-inspection (MIT), typing_extensions (PSF-2.0), tzdata (Apache-2.0).
+
+Dependency transitif dari google-genai: certifi (MPL-2.0), cffi (MIT-0), charset-normalizer (MIT), cryptography (Apache-2.0 OR BSD-3-Clause), distro (Apache-2.0), google-auth (Apache-2.0), httpcore2 (BSD-3-Clause), httpx2 (BSD-3-Clause), pyasn1 (BSD-2-Clause), pyasn1_modules (BSD-2-Clause), pycparser (BSD-3-Clause), requests (Apache-2.0), sniffio (MIT OR Apache-2.0), tenacity (Apache-2.0), truststore (MIT), urllib3 (MIT), websockets (BSD-3-Clause).
 
 Driver PostgreSQL yang dipakai adalah asyncpg (Apache-2.0). psycopg dan psycopg2 sengaja tidak dipakai karena berlisensi LGPL.
 
@@ -170,6 +175,8 @@ Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_ext
 - Paket lain yang muncul hanya di tool build: caniuse-lite (CC-BY-4.0), isexe dan minimatch (BlueOak-1.0.0), type-fest (MIT OR CC0-1.0). Semuanya tidak ikut ke bundle.
 - **Font Inter (OFL-1.1)** dipakai sebagai font antarmuka. Lisensi OFL berlaku untuk file font, bukan kode program, dan font dibundel tanpa modifikasi.
 - Beberapa paket sengaja tidak dipakai karena lisensinya: `shap` (menarik tqdm yang MPL-2.0, diganti TreeSHAP bawaan LightGBM), `matplotlib` (lisensi berbasis PSF, diganti plotly), dan `httpx` untuk testing (menarik certifi yang MPL-2.0).
+- **certifi (MPL-2.0)** ikut terpasang sebagai dependency transitif google-genai (lewat requests dan httpx2) untuk daftar sertifikat TLS. Paket ini tidak dimodifikasi dan statusnya masih menunggu konfirmasi Dicoding bersama MPL-2.0 transitif lainnya.
+- **cffi (MIT-0)** adalah varian MIT tanpa kewajiban mencantumkan atribusi, jadi lebih longgar dari MIT.
 
 ## Sumber Data dan Referensi
 

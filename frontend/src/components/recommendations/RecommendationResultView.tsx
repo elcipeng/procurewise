@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { formatDateTime } from '@/lib/format'
 import type { RecommendationResult } from '@/types/recommendation'
+import { ExplanationPanel } from './ExplanationPanel'
 import { RankingTable } from './RankingTable'
 import { RejectedVendorList } from './RejectedVendorList'
 import { TopVendorComparison } from './TopVendorComparison'
@@ -41,6 +42,8 @@ export function RecommendationResultView({ result }: { result: RecommendationRes
           </p>
         </div>
       )}
+
+      <ExplanationPanel requestId={result.request.id} rankedAt={result.ranked_at} />
 
       {ranked.length === 0 ? (
         <div className="rounded-lg border border-dashed px-4 py-8 text-center text-muted-foreground">

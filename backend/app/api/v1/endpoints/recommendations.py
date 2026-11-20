@@ -5,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.responses import ApiResponse, respond
 from app.db.session import get_session
+from app.schemas.explanation import ExplanationRead
 from app.schemas.recommendation import RecommendationResult, RecommendationRun
-from app.services import recommendation_service
+from app.services import explanation_service, recommendation_service
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -25,3 +26,13 @@ async def run_recommendation(payload: RecommendationRun, session: Session):
 @router.get("/{request_id}", response_model=ApiResponse[RecommendationResult])
 async def get_recommendation(request_id: int, session: Session):
     return respond(await recommendation_service.get_recommendation(session, request_id))
+
+
+@router.post("/{request_id}/explanation", response_model=ApiResponse[ExplanationRead])
+async def explain_recommendation(request_id: int, session: Session):
+    """penjelasan dan trade-off dari Gemini, dengan fallback template kalau Gemini tidak tersedia.
+
+    penjelasan Gemini disimpan sebagai cache, jadi panggilan berikutnya untuk ranking yang sama tidak memanggil Gemini lagi.
+    """
+    explanation = await explanation_service.get_explanation(session, request_id)
+    return respond(explanation, message="Penjelasan rekomendasi berhasil dibuat")

@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # kosong berarti ml_dir/models. kalau model tidak bisa dimuat dari sini, ranking memakai fallback weighted sum
     ml_model_dir: Path | None = None
 
+    # kosong berarti penjelasan rekomendasi langsung memakai template tanpa memanggil Gemini
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_timeout_seconds: float = 20.0
+
     @field_validator("database_url")
     @classmethod
     def normalize_database_url(cls, value: str | None) -> str | None:
