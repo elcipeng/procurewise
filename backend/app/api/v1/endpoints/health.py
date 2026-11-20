@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.core.config import get_settings
 from app.core.responses import ApiResponse, respond
 from app.db.session import get_engine
+from app.services.ranking_engine import active_model_version
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class HealthData(BaseModel):
     status: Literal["ok"]
     version: str
     database: Literal["ok", "unavailable", "not_configured"]
+    # versi model ranking yang aktif, weighted-sum-fallback berarti model LightGBM gagal dimuat
+    model: str
 
 
 async def check_database() -> str:
@@ -39,5 +42,10 @@ async def check_database() -> str:
 
 @router.get("/health", response_model=ApiResponse[HealthData])
 async def health():
-    data = HealthData(status="ok", version=get_settings().app_version, database=await check_database())
+    data = HealthData(
+        status="ok",
+        version=get_settings().app_version,
+        database=await check_database(),
+        model=active_model_version(),
+    )
     return respond(data)

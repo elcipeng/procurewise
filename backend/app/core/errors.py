@@ -17,6 +17,8 @@ ENTITY_LABELS = {
     "vendors": "vendor",
     "materials": "material",
     "vendor-offers": "penawaran vendor",
+    "procurement-requests": "kebutuhan procurement",
+    "recommendations": "rekomendasi",
 }
 DEFAULT_ENTITY_LABEL = "request"
 

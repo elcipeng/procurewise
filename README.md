@@ -93,8 +93,13 @@ Aturan proyek: dependency hanya boleh berlisensi MIT, BSD, atau Apache 2.0. Lise
 | asyncpg | 0.32.0 | Apache-2.0 |
 | pydantic | 2.14.1 | MIT |
 | pydantic-settings | 2.15.0 | MIT |
+| numpy | 2.5.4 | BSD-3-Clause (beberapa komponen 0BSD, MIT, Zlib, CC0) |
+| pandas | 3.0.6 | BSD-3-Clause |
+| lightgbm | 4.7.0 | MIT |
 
-Dependency transitif: annotated-doc (MIT), annotated-types (MIT), anyio (MIT), click (BSD-3-Clause), greenlet (MIT AND PSF-2.0), h11 (MIT), idna (BSD-3-Clause), Mako (MIT), MarkupSafe (BSD-3-Clause), opentelemetry-api (Apache-2.0), pydantic_core (MIT), python-dotenv (BSD-3-Clause), starlette (BSD-3-Clause), typing-inspection (MIT), typing_extensions (PSF-2.0).
+numpy, pandas, dan lightgbm dipakai untuk inference ranking lewat modul `ml/procurewise_ml`, dengan versi yang sama seperti `ml/requirements.txt`.
+
+Dependency transitif: annotated-doc (MIT), annotated-types (MIT), anyio (MIT), click (BSD-3-Clause), greenlet (MIT AND PSF-2.0), h11 (MIT), idna (BSD-3-Clause), Mako (MIT), MarkupSafe (BSD-3-Clause), opentelemetry-api (Apache-2.0), pydantic_core (MIT), python-dateutil (BSD-3-Clause), python-dotenv (BSD-3-Clause), scipy (BSD-3-Clause), starlette (BSD-3-Clause), typing-inspection (MIT), typing_extensions (PSF-2.0), tzdata (Apache-2.0).
 
 Driver PostgreSQL yang dipakai adalah asyncpg (Apache-2.0). psycopg dan psycopg2 sengaja tidak dipakai karena berlisensi LGPL.
 
@@ -128,11 +133,18 @@ Dependency development (hanya dipakai saat build dan pengembangan):
 | shadcn | 4.21.4 | MIT |
 | typescript | 6.0.3 | Apache-2.0 |
 | oxlint | 1.87.0 | MIT |
+| prettier | 3.9.10 | MIT |
 | @types/node | 24.19.2 | MIT |
 | @types/react | 19.3.0 | MIT |
 | @types/react-dom | 19.3.0 | MIT |
 
 Ringkasan dependency transitif runtime: 140 MIT, 13 ISC (paket d3 dari recharts dan lucide-react), 1 Apache-2.0, 1 BSD-3-Clause, 1 0BSD. Paket `next-themes` yang ikut terpasang bersama komponen toast shadcn dilepas karena aplikasi hanya memakai satu tema.
+
+Font (aset tampilan, bukan kode program):
+
+| Paket | Versi | Lisensi |
+| --- | --- | --- |
+| @fontsource-variable/inter | 5.3.0 | OFL-1.1 (font Inter) |
 
 ### ML (`ml/requirements.txt`)
 
@@ -156,7 +168,8 @@ Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_ext
 - **PSF-2.0** (typing_extensions, sebagian greenlet) adalah lisensi permisif non-copyleft. Paket ini wajib untuk pydantic dan SQLAlchemy sehingga tidak bisa dihindari.
 - **lightningcss (MPL-2.0)** adalah dependency transitif dari vite 8 dan Tailwind CSS v4. Paket ini hanya berjalan saat build, tidak ikut ke bundle aplikasi, dan tidak dimodifikasi.
 - Paket lain yang muncul hanya di tool build: caniuse-lite (CC-BY-4.0), isexe dan minimatch (BlueOak-1.0.0), type-fest (MIT OR CC0-1.0). Semuanya tidak ikut ke bundle.
-- Beberapa paket sengaja tidak dipakai karena lisensinya: `shap` (menarik tqdm yang MPL-2.0, diganti TreeSHAP bawaan LightGBM), `matplotlib` (lisensi berbasis PSF, diganti plotly), font Geist bawaan preset shadcn (SIL OFL 1.1, diganti font sistem), dan `httpx` untuk testing (menarik certifi yang MPL-2.0).
+- **Font Inter (OFL-1.1)** dipakai sebagai font antarmuka. Lisensi OFL berlaku untuk file font, bukan kode program, dan font dibundel tanpa modifikasi.
+- Beberapa paket sengaja tidak dipakai karena lisensinya: `shap` (menarik tqdm yang MPL-2.0, diganti TreeSHAP bawaan LightGBM), `matplotlib` (lisensi berbasis PSF, diganti plotly), dan `httpx` untuk testing (menarik certifi yang MPL-2.0).
 
 ## Sumber Data dan Referensi
 

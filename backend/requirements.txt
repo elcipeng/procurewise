@@ -6,3 +6,7 @@ alembic==1.20.0
 asyncpg==0.32.0
 pydantic==2.14.1
 pydantic-settings==2.15.0
+# inference ranking memakai modul ml/procurewise_ml, versi sama dengan ml/requirements.txt
+numpy==2.5.4
+pandas==3.0.6
+lightgbm==4.7.0

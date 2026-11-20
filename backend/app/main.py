@@ -8,10 +8,13 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.db.session import get_engine
+from app.services.ranking_engine import load_model
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # model dimuat sekali saat startup, kegagalan sudah ditangani dengan fallback di dalam load_model
+    load_model()
     yield
     engine = get_engine()
     if engine is not None:

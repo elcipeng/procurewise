@@ -21,6 +21,16 @@ class ApiResponse(BaseModel, Generic[T]):
     data: T
 
 
+class PageMeta(BaseModel):
+    page: int
+    page_size: int
+    total: int
+
+
+class PaginatedResponse(ApiResponse[T], Generic[T]):
+    meta: PageMeta
+
+
 class FieldError(BaseModel):
     field: str
     error: str
@@ -42,8 +52,13 @@ def now_jakarta() -> datetime:
     return datetime.now(JAKARTA_TZ).replace(microsecond=0)
 
 
-def respond(data: Any = None, status_code: int = 200, message: str = SUCCESS_MESSAGE) -> JSONResponse:
+def respond(
+    data: Any = None, status_code: int = 200, message: str = SUCCESS_MESSAGE, meta: PageMeta | None = None,
+) -> JSONResponse:
     body = {"status": status_code, "message": message, "timestamp": now_jakarta(), "data": data}
+    # meta hanya untuk list yang dipaginasi di server, endpoint lain tidak punya field ini
+    if meta is not None:
+        body["meta"] = meta
     return JSONResponse(status_code=status_code, content=jsonable_encoder(body))
 
 
