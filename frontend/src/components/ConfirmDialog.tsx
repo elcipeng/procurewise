@@ -17,6 +17,8 @@ type ConfirmDialogProps = {
   confirmLabel: string
   isPending: boolean
   onConfirm: () => void
+  // destructive untuk hapus atau nonaktifkan, default untuk aksi yang tidak menghilangkan data
+  tone?: 'destructive' | 'default'
 }
 
 export function ConfirmDialog({
@@ -27,6 +29,7 @@ export function ConfirmDialog({
   confirmLabel,
   isPending,
   onConfirm,
+  tone = 'destructive',
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -38,7 +41,7 @@ export function ConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
           <AlertDialogAction
-            variant="destructive"
+            variant={tone}
             disabled={isPending}
             onClick={(event) => {
               // dialog ditutup setelah request selesai, bukan saat tombol diklik

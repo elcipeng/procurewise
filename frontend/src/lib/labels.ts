@@ -1,4 +1,5 @@
 import type { Unit } from '@/types/material'
+import type { Priority, RequestStatus } from '@/types/procurement'
 import type { Category, PaymentTerms } from '@/types/vendor'
 
 // nilai enum di DB berbahasa inggris atau kode, label bahasa indonesia hanya untuk tampilan
@@ -23,3 +24,16 @@ export const UNIT_LABELS: Record<Unit, string> = {
 
 export const toOptions = <T extends string>(labels: Record<T, string>) =>
   (Object.entries(labels) as [T, string][]).map(([value, label]) => ({ value, label }))
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  high: 'Tinggi',
+  normal: 'Normal',
+  low: 'Rendah',
+}
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  new: 'Baru',
+  recommended: 'Sudah direkomendasikan',
+  completed: 'Selesai',
+  cancelled: 'Dibatalkan',
+}

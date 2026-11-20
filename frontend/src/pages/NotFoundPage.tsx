@@ -7,7 +7,7 @@ export function NotFoundPage() {
       <p className="text-title">Halaman tidak ditemukan</p>
       <p className="text-muted-foreground">Alamat yang dibuka tidak tersedia di ProcureWise.</p>
       <Button asChild variant="outline" className="mt-2">
-        <Link to="/vendor">Kembali ke daftar vendor</Link>
+        <Link to="/kebutuhan">Kembali ke daftar kebutuhan</Link>
       </Button>
     </div>
   )

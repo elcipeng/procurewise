@@ -1,22 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, RotateCw, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { TablePagination } from './TablePagination'
+import { DataTableView, type Column, type SortState } from './DataTableView'
 
-export type Column<T> = {
-  id: string
-  header: string
-  cell: (row: T) => ReactNode
-  sortValue?: (row: T) => string | number
-  className?: string
-}
-
-type SortState = { columnId: string; direction: 'asc' | 'desc' }
+export type { Column } from './DataTableView'
 
 type DataTableProps<T> = {
   rows: T[] | undefined
@@ -32,14 +19,14 @@ type DataTableProps<T> = {
   initialSort?: SortState
 }
 
-const DEFAULT_PAGE_SIZE = 10
-const SKELETON_ROWS = 5
+export const DEFAULT_PAGE_SIZE = 10
 
 function compare(a: string | number, b: string | number) {
   if (typeof a === 'number' && typeof b === 'number') return a - b
   return String(a).localeCompare(String(b), 'id', { sensitivity: 'base', numeric: true })
 }
 
+/** tabel dengan pencarian, sort, dan pagination di client, untuk daftar kecil yang dimuat utuh dari API */
 export function DataTable<T>({
   rows,
   columns,
@@ -72,14 +59,6 @@ export function DataTable<T>({
   const currentPage = Math.min(page, pageCount)
   const pageRows = visibleRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  const toggleSort = (columnId: string) => {
-    setSort((current) =>
-      current?.columnId === columnId && current.direction === 'asc'
-        ? { columnId, direction: 'desc' }
-        : { columnId, direction: 'asc' },
-    )
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -99,97 +78,28 @@ export function DataTable<T>({
         {toolbar && <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">{toolbar}</div>}
       </div>
 
-      <Card className="gap-0 overflow-hidden py-0 shadow-card">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/60 hover:bg-muted/60">
-                {columns.map((column) => {
-                  const active = sort?.columnId === column.id
-                  const SortIcon = !active ? ArrowUpDown : sort.direction === 'asc' ? ArrowUp : ArrowDown
-                  return (
-                    <TableHead
-                      key={column.id}
-                      className={cn('text-caption font-medium text-muted-foreground', column.className)}
-                      aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
-                    >
-                      {column.sortValue ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleSort(column.id)}
-                          className="inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                        >
-                          {column.header}
-                          <SortIcon className={cn('size-3.5', !active && 'opacity-50')} />
-                        </button>
-                      ) : (
-                        column.header
-                      )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading &&
-                Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                  <TableRow key={i}>
-                    {columns.map((column) => (
-                      <TableCell key={column.id}>
-                        <Skeleton className="h-4 w-full max-w-32" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-
-              {!isLoading && error && (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={columns.length} className="py-10 text-center">
-                    <p className="text-muted-foreground">{error.message}</p>
-                    <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
-                      <RotateCw />
-                      Coba lagi
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {!isLoading && !error && pageRows.length === 0 && (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={columns.length} className="py-10 text-center text-muted-foreground">
-                    {query.trim() ? 'Tidak ada data yang cocok dengan pencarian.' : emptyMessage}
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {!isLoading &&
-                !error &&
-                pageRows.map((row) => (
-                  <TableRow key={getRowKey(row)}>
-                    {columns.map((column) => (
-                      <TableCell key={column.id} className={column.className}>
-                        {column.cell(row)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </div>
-        {!isLoading && !error && visibleRows.length > 0 && (
-          <TablePagination
-            page={currentPage}
-            pageCount={pageCount}
-            pageSize={pageSize}
-            total={visibleRows.length}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size)
-              setPage(1)
-            }}
-          />
-        )}
-      </Card>
+      <DataTableView
+        rows={pageRows}
+        columns={columns}
+        getRowKey={getRowKey}
+        emptyMessage={query.trim() ? 'Tidak ada data yang cocok dengan pencarian.' : emptyMessage}
+        isLoading={isLoading}
+        error={error}
+        onRetry={onRetry}
+        sort={sort}
+        onSortChange={setSort}
+        pagination={{
+          page: currentPage,
+          pageCount,
+          pageSize,
+          total: visibleRows.length,
+          onPageChange: setPage,
+          onPageSizeChange: (size) => {
+            setPageSize(size)
+            setPage(1)
+          },
+        }}
+      />
     </div>
   )
 }
