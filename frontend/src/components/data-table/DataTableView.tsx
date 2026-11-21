@@ -1,11 +1,17 @@
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, RotateCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { TablePagination } from './TablePagination'
+import {
+  Button,
+  DataTableSkeleton,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@carbon/react'
+import { Renew } from '@carbon/icons-react'
 
 export type Column<T> = {
   id: string
@@ -19,11 +25,9 @@ export type SortState = { columnId: string; direction: 'asc' | 'desc' }
 
 export type PaginationState = {
   page: number
-  pageCount: number
   pageSize: number
   total: number
-  onPageChange: (page: number) => void
-  onPageSizeChange: (size: number) => void
+  onChange: (page: number, pageSize: number) => void
 }
 
 type DataTableViewProps<T> = {
@@ -35,12 +39,15 @@ type DataTableViewProps<T> = {
   error: Error | null
   onRetry: () => void
   pagination: PaginationState
+  toolbar?: ReactNode
   // tanpa onSortChange, header tampil biasa (misalnya untuk tabel yang diurutkan di server)
   sort?: SortState
   onSortChange?: (sort: SortState) => void
 }
 
+const PAGE_SIZES = [10, 20, 50]
 const SKELETON_ROWS = 5
+const SORT_DIRECTION = { asc: 'ASC', desc: 'DESC' } as const
 
 export function DataTableView<T>({
   rows,
@@ -51,6 +58,7 @@ export function DataTableView<T>({
   error,
   onRetry,
   pagination,
+  toolbar,
   sort,
   onSortChange,
 }: DataTableViewProps<T>) {
@@ -61,72 +69,62 @@ export function DataTableView<T>({
         : { columnId, direction: 'asc' },
     )
 
+  if (isLoading) {
+    return (
+      <DataTableSkeleton
+        columnCount={columns.length}
+        rowCount={SKELETON_ROWS}
+        headers={columns.map((c) => ({ key: c.id, header: c.header }))}
+        showToolbar={!!toolbar}
+        showHeader={false}
+      />
+    )
+  }
+
   return (
-    <Card className="gap-0 overflow-hidden py-0 shadow-card">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/60 hover:bg-muted/60">
+    <TableContainer className="pw-table">
+      {toolbar}
+      <div className="pw-table__scroll">
+        <Table size="lg" useZebraStyles={false}>
+          <TableHead>
+            <TableRow>
               {columns.map((column) => {
+                const sortable = !!column.sortValue && !!onSortChange
                 const active = sort?.columnId === column.id
-                const SortIcon = !active ? ArrowUpDown : sort.direction === 'asc' ? ArrowUp : ArrowDown
                 return (
-                  <TableHead
+                  <TableHeader
                     key={column.id}
-                    className={cn('text-caption font-medium text-muted-foreground', column.className)}
-                    aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+                    className={column.className}
+                    isSortable={sortable}
+                    isSortHeader={active}
+                    sortDirection={active ? SORT_DIRECTION[sort.direction] : 'NONE'}
+                    onClick={sortable ? () => toggleSort(column.id) : undefined}
                   >
-                    {column.sortValue && onSortChange ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(column.id)}
-                        className="inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                      >
-                        {column.header}
-                        <SortIcon className={cn('size-3.5', !active && 'opacity-50')} />
-                      </button>
-                    ) : (
-                      column.header
-                    )}
-                  </TableHead>
+                    {column.header}
+                  </TableHeader>
                 )
               })}
             </TableRow>
-          </TableHeader>
+          </TableHead>
           <TableBody>
-            {isLoading &&
-              Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                <TableRow key={i}>
-                  {columns.map((column) => (
-                    <TableCell key={column.id}>
-                      <Skeleton className="h-4 w-full max-w-32" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-
-            {!isLoading && error && (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columns.length} className="py-10 text-center">
-                  <p className="text-muted-foreground">{error.message}</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
-                    <RotateCw />
-                    Coba lagi
-                  </Button>
+            {error ? (
+              <TableRow>
+                <TableCell colSpan={columns.length}>
+                  <div className="pw-table__message">
+                    <p>{error.message}</p>
+                    <Button kind="tertiary" size="sm" renderIcon={Renew} onClick={onRetry}>
+                      Coba lagi
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
-            )}
-
-            {!isLoading && !error && rows.length === 0 && (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columns.length} className="py-10 text-center text-muted-foreground">
-                  {emptyMessage}
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length}>
+                  <p className="pw-table__message">{emptyMessage}</p>
                 </TableCell>
               </TableRow>
-            )}
-
-            {!isLoading &&
-              !error &&
+            ) : (
               rows.map((row) => (
                 <TableRow key={getRowKey(row)}>
                   {columns.map((column) => (
@@ -135,11 +133,27 @@ export function DataTableView<T>({
                     </TableCell>
                   ))}
                 </TableRow>
-              ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      {!isLoading && !error && pagination.total > 0 && <TablePagination {...pagination} />}
-    </Card>
+      {!error && pagination.total > 0 && (
+        <Pagination
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          pageSizes={PAGE_SIZES}
+          totalItems={pagination.total}
+          onChange={({ page, pageSize }) => pagination.onChange(page, pageSize)}
+          itemsPerPageText="Baris per halaman"
+          itemRangeText={(min, max, total) => `${min} sampai ${max} dari ${total} data`}
+          pageRangeText={(_current, total) => `dari ${total} halaman`}
+          pageText={(page) => `Halaman ${page}`}
+          backwardText="Halaman sebelumnya"
+          forwardText="Halaman berikutnya"
+          pageNumberText="Nomor halaman"
+        />
+      )}
+    </TableContainer>
   )
 }

@@ -1,18 +1,27 @@
-import { StatusBadge } from '@/components/StatusBadge'
+import { Tag } from '@carbon/react'
 import { PRIORITY_LABELS, REQUEST_STATUS_LABELS } from '@/lib/labels'
 import type { Priority, RequestStatus } from '@/types/procurement'
 
-const STATUS_TONES = {
-  new: 'warning',
-  recommended: 'success',
-  completed: 'neutral',
-  cancelled: 'neutral',
+// warna tag mengikuti makna: biru menunggu diproses, hijau sudah selesai diproses, abu-abu arsip histori
+const STATUS_TAG_TYPES = {
+  new: 'blue',
+  recommended: 'green',
+  completed: 'gray',
+  cancelled: 'gray',
 } as const
 
 export function RequestStatusBadge({ status }: { status: RequestStatus }) {
-  return <StatusBadge tone={STATUS_TONES[status]} label={REQUEST_STATUS_LABELS[status]} />
+  return (
+    <Tag type={STATUS_TAG_TYPES[status]} size="sm">
+      {REQUEST_STATUS_LABELS[status]}
+    </Tag>
+  )
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
-  return <StatusBadge tone={priority === 'high' ? 'warning' : 'neutral'} label={PRIORITY_LABELS[priority]} />
+  return (
+    <Tag type={priority === 'high' ? 'red' : 'gray'} size="sm">
+      {PRIORITY_LABELS[priority]}
+    </Tag>
+  )
 }

@@ -1,13 +1,4 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { Modal } from '@carbon/react'
 
 type ConfirmDialogProps = {
   open: boolean
@@ -32,27 +23,21 @@ export function ConfirmDialog({
   tone = 'destructive',
 }: ConfirmDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-          <AlertDialogAction
-            variant={tone}
-            disabled={isPending}
-            onClick={(event) => {
-              // dialog ditutup setelah request selesai, bukan saat tombol diklik
-              event.preventDefault()
-              onConfirm()
-            }}
-          >
-            {isPending ? 'Memproses...' : confirmLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Modal
+      open={open}
+      size="sm"
+      danger={tone === 'destructive'}
+      modalHeading={title}
+      primaryButtonText={confirmLabel}
+      secondaryButtonText="Batal"
+      // dialog ditutup oleh pemanggil setelah request selesai, bukan saat tombol diklik
+      onRequestSubmit={onConfirm}
+      onRequestClose={() => !isPending && onOpenChange(false)}
+      loadingStatus={isPending ? 'active' : 'inactive'}
+      loadingDescription="Memproses..."
+      primaryButtonDisabled={isPending}
+    >
+      <p>{description}</p>
+    </Modal>
   )
 }

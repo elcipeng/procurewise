@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { ArrowRight, Plus } from 'lucide-react'
+import { Button, TableToolbar, TableToolbarContent } from '@carbon/react'
+import { Add, ArrowRight } from '@carbon/icons-react'
 import { Link, useNavigate } from 'react-router'
 import { DEFAULT_PAGE_SIZE } from '@/components/data-table/DataTable'
 import { DataTableView, type Column } from '@/components/data-table/DataTableView'
-import { OptionSelect } from '@/components/OptionSelect'
+import { FilterSelect } from '@/components/FilterSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { PriorityBadge, RequestStatusBadge } from '@/components/procurement/RequestBadges'
 import { ProcurementRequestFormDialog } from '@/components/procurement/ProcurementRequestFormDialog'
-import { Button } from '@/components/ui/button'
 import { useProcurementRequests } from '@/hooks/useProcurementRequests'
 import { formatDate } from '@/lib/format'
 import { REQUEST_STATUS_LABELS, UNIT_LABELS, toOptions } from '@/lib/labels'
@@ -20,23 +20,24 @@ const columns: Column<ProcurementRequest>[] = [
   {
     id: 'id',
     header: 'No.',
-    cell: (r) => <span className="text-muted-foreground tabular-nums">#{r.id}</span>,
+    cell: (r) => <span className="pw-mono pw-text-secondary">#{r.id}</span>,
   },
   {
     id: 'material',
     header: 'Material',
     cell: (r) => (
-      <div className="min-w-48">
-        <p className="font-medium text-foreground">{r.material_name}</p>
-        <p className="text-caption text-muted-foreground">{r.material_code}</p>
+      <div className="pw-cell-stack pw-cell-wide">
+        <span>{r.material_name}</span>
+        <span className="pw-mono pw-caption">{r.material_code}</span>
       </div>
     ),
   },
   {
     id: 'qty',
     header: 'Jumlah',
+    className: 'pw-nowrap',
     cell: (r) => (
-      <span className="whitespace-nowrap tabular-nums">
+      <span className="pw-numeric">
         {r.qty.toLocaleString('id-ID')} {UNIT_LABELS[r.material_unit]}
       </span>
     ),
@@ -44,25 +45,31 @@ const columns: Column<ProcurementRequest>[] = [
   {
     id: 'needed_by',
     header: 'Dibutuhkan paling lambat',
-    cell: (r) => <span className="whitespace-nowrap">{formatDate(r.needed_by)}</span>,
+    className: 'pw-nowrap',
+    cell: (r) => formatDate(r.needed_by),
   },
   { id: 'priority', header: 'Prioritas', cell: (r) => <PriorityBadge priority={r.priority} /> },
   { id: 'status', header: 'Status', cell: (r) => <RequestStatusBadge status={r.status} /> },
   {
     id: 'request_date',
     header: 'Dibuat',
-    cell: (r) => <span className="whitespace-nowrap text-muted-foreground">{formatDate(r.request_date)}</span>,
+    className: 'pw-nowrap pw-text-secondary',
+    cell: (r) => formatDate(r.request_date),
   },
   {
     id: 'actions',
     header: 'Aksi',
-    className: 'text-right',
+    className: 'pw-cell-actions',
     cell: (r) => (
-      <Button asChild variant="ghost" size="sm">
-        <Link to={`/kebutuhan/${r.id}`} aria-label={`Lihat kebutuhan nomor ${r.id}`}>
-          Lihat
-          <ArrowRight />
-        </Link>
+      <Button
+        as={Link}
+        to={`/kebutuhan/${r.id}`}
+        kind="ghost"
+        size="sm"
+        renderIcon={ArrowRight}
+        aria-label={`Lihat kebutuhan nomor ${r.id}`}
+      >
+        Lihat
       </Button>
     ),
   },
@@ -89,29 +96,16 @@ export function ProcurementRequestsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="pw-page">
       <PageHeader
         title="Kebutuhan procurement"
         description="Catat kebutuhan pembelian, lalu bandingkan vendor yang direkomendasikan model."
         actions={
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus />
+          <Button renderIcon={Add} onClick={() => setFormOpen(true)}>
             Tambah kebutuhan
           </Button>
         }
       />
-      <div className="grid grid-cols-2 gap-2 sm:flex">
-        <OptionSelect
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value)
-            setPage(1)
-          }}
-          options={STATUS_FILTER_OPTIONS}
-          aria-label="Filter status"
-          className="sm:w-56"
-        />
-      </div>
       <DataTableView
         rows={requests.data?.data ?? []}
         columns={columns}
@@ -120,15 +114,29 @@ export function ProcurementRequestsPage() {
         isLoading={requests.isPending}
         error={requests.error}
         onRetry={() => requests.refetch()}
+        toolbar={
+          <TableToolbar aria-label="Filter kebutuhan">
+            <TableToolbarContent className="pw-toolbar pw-toolbar--start">
+              <FilterSelect
+                id="request-status-filter"
+                label="Filter status"
+                value={status}
+                onChange={(value) => {
+                  setStatus(value)
+                  setPage(1)
+                }}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </TableToolbarContent>
+          </TableToolbar>
+        }
         pagination={{
           page,
-          pageCount: Math.max(1, Math.ceil(total / pageSize)),
           pageSize,
           total,
-          onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size)
-            setPage(1)
+          onChange: (nextPage, nextSize) => {
+            setPage(nextSize === pageSize ? nextPage : 1)
+            setPageSize(nextSize)
           },
         }}
       />

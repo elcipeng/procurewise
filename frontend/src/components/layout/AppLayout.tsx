@@ -1,62 +1,75 @@
 import { useState } from 'react'
-import { Menu } from 'lucide-react'
-import { Outlet, useLocation } from 'react-router'
+import {
+  Content,
+  Header,
+  HeaderGlobalBar,
+  HeaderMenuButton,
+  HeaderName,
+  SideNav,
+  SideNavItems,
+  SideNavLink,
+  SkipToContent,
+  Theme,
+} from '@carbon/react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { NAV_ITEMS } from './navigation'
 import { ServerStatus } from './ServerStatus'
 import { SlowServerNotice } from './SlowServerNotice'
-import { Brand, SidebarNav } from './SidebarNav'
 
 export function AppLayout() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
 
   return (
-    <div className="min-h-svh bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-sidebar flex-col gap-6 border-r border-sidebar-border bg-sidebar px-4 py-5 lg:flex">
-        <Brand />
-        <SidebarNav />
-      </aside>
-
-      <div className="lg:pl-sidebar">
-        <header className="sticky top-0 z-30 flex h-header items-center gap-3 border-b bg-card/95 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Buka menu navigasi"
-          >
-            <Menu />
-          </Button>
-          <div className="lg:hidden">
-            <Brand />
-          </div>
-          <div className="ml-auto">
+    <>
+      {/* header gelap g100 sesuai pola UI Shell carbon, konten tetap tema terang g10 */}
+      <Theme theme="g100">
+        <Header aria-label="ProcureWise">
+          <SkipToContent href="#main-content">Lewati ke konten utama</SkipToContent>
+          <HeaderMenuButton
+            aria-label={navOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+            isActive={navOpen}
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen((open) => !open)}
+          />
+          <HeaderName as={Link} to="/kebutuhan" prefix="">
+            ProcureWise
+          </HeaderName>
+          <HeaderGlobalBar>
             <ServerStatus />
-          </div>
-        </header>
+          </HeaderGlobalBar>
+        </Header>
+      </Theme>
+      <SideNav
+        aria-label="Navigasi utama"
+        expanded={navOpen}
+        onOverlayClick={() => setNavOpen(false)}
+        href="#main-content"
+      >
+        <SideNavItems>
+          {NAV_ITEMS.map(({ to, label, icon }) => (
+            <SideNavLink
+              key={to}
+              as={NavLink}
+              to={to}
+              renderIcon={icon}
+              isActive={location.pathname.startsWith(to)}
+              onClick={() => setNavOpen(false)}
+            >
+              {label}
+            </SideNavLink>
+          ))}
+        </SideNavItems>
+      </SideNav>
+
+      <Content id="main-content" className="pw-content">
         <SlowServerNotice />
-
-        <main className="mx-auto w-full max-w-content px-4 py-6 sm:px-6 lg:px-8">
-          {/* key per halaman supaya error di satu halaman hilang saat pindah halaman */}
-          <ErrorBoundary key={location.pathname}>
-            <Outlet />
-          </ErrorBoundary>
-        </main>
-      </div>
-
-      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="w-sidebar gap-6 px-4 py-5">
-          <SheetHeader className="p-0">
-            <SheetTitle className="sr-only">Menu navigasi</SheetTitle>
-            <SheetDescription className="sr-only">Pilih halaman yang ingin dibuka</SheetDescription>
-            <Brand />
-          </SheetHeader>
-          <SidebarNav onNavigate={() => setMenuOpen(false)} />
-        </SheetContent>
-      </Sheet>
-    </div>
+        {/* key per halaman supaya error di satu halaman hilang saat pindah halaman */}
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
+      </Content>
+    </>
   )
 }

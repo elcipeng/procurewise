@@ -1,22 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { toast } from 'sonner'
-import { FormField } from '@/components/FormField'
-import { OptionSelect } from '@/components/OptionSelect'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { Select, SelectItem, TextInput } from '@carbon/react'
+import { FormModal } from '@/components/FormModal'
 import { useSaveVendor } from '@/hooks/useVendors'
-import { fieldErrorId, handleMutationError, type FieldErrors } from '@/lib/feedback'
+import { handleMutationError, type FieldErrors } from '@/lib/feedback'
+import { toast } from '@/lib/toast'
 import { CATEGORY_LABELS, PAYMENT_TERMS_LABELS, toOptions } from '@/lib/labels'
 import type { Category, PaymentTerms, Vendor } from '@/types/vendor'
 
+const FORM_ID = 'vendor-form'
 const FORM_FIELDS = ['name', 'category', 'city', 'contact', 'payment_terms'] as const
 const CATEGORY_OPTIONS = toOptions(CATEGORY_LABELS)
 const PAYMENT_TERMS_OPTIONS = toOptions(PAYMENT_TERMS_LABELS)
@@ -44,19 +35,8 @@ type VendorFormDialogProps = {
 }
 
 export function VendorFormDialog({ open, onOpenChange, vendor }: VendorFormDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{vendor ? 'Ubah vendor' : 'Tambah vendor'}</DialogTitle>
-          <DialogDescription>
-            {vendor ? 'Perbarui data vendor.' : 'Vendor baru langsung berstatus aktif.'}
-          </DialogDescription>
-        </DialogHeader>
-        {open && <VendorForm vendor={vendor} onDone={() => onOpenChange(false)} />}
-      </DialogContent>
-    </Dialog>
-  )
+  // form dipasang ulang setiap modal dibuka supaya isian dan error lama tidak tersisa
+  return open ? <VendorForm vendor={vendor} onDone={() => onOpenChange(false)} /> : null
 }
 
 function VendorForm({ vendor, onDone }: { vendor?: Vendor; onDone: () => void }) {
@@ -100,70 +80,71 @@ function VendorForm({ vendor, onDone }: { vendor?: Vendor; onDone: () => void })
     )
   }
 
-  const describe = (field: keyof FormState) => (errors[field] ? fieldErrorId(`vendor-${field}`) : undefined)
-
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-      <FormField id="vendor-name" label="Nama vendor" error={errors.name}>
-        <Input
-          id="vendor-name"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          aria-invalid={!!errors.name || undefined}
-          aria-describedby={describe('name')}
-          autoFocus
+    <FormModal
+      open
+      onClose={onDone}
+      formId={FORM_ID}
+      title={vendor ? 'Ubah vendor' : 'Tambah vendor'}
+      description={vendor ? 'Perbarui data vendor.' : 'Vendor baru langsung berstatus aktif.'}
+      submitLabel="Simpan"
+      isPending={save.isPending}
+      onSubmit={submit}
+    >
+      <TextInput
+        id="vendor-name"
+        labelText="Nama vendor"
+        value={form.name}
+        onChange={(e) => set('name', e.target.value)}
+        invalid={!!errors.name}
+        invalidText={errors.name}
+        data-modal-primary-focus
+      />
+      <div className="pw-form__row">
+        <Select
+          id="vendor-category"
+          labelText="Kategori"
+          value={form.category}
+          onChange={(e) => set('category', e.target.value as Category)}
+          invalid={!!errors.category}
+          invalidText={errors.category}
+        >
+          <SelectItem value="" text="Pilih kategori" disabled hidden />
+          {CATEGORY_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value} text={o.label} />
+          ))}
+        </Select>
+        <TextInput
+          id="vendor-city"
+          labelText="Kota"
+          value={form.city}
+          onChange={(e) => set('city', e.target.value)}
+          invalid={!!errors.city}
+          invalidText={errors.city}
         />
-      </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="vendor-category" label="Kategori" error={errors.category}>
-          <OptionSelect
-            id="vendor-category"
-            value={form.category}
-            onValueChange={(value) => set('category', value as Category)}
-            options={CATEGORY_OPTIONS}
-            placeholder="Pilih kategori"
-            invalid={!!errors.category}
-            describedBy={describe('category')}
-          />
-        </FormField>
-        <FormField id="vendor-city" label="Kota" error={errors.city}>
-          <Input
-            id="vendor-city"
-            value={form.city}
-            onChange={(e) => set('city', e.target.value)}
-            aria-invalid={!!errors.city || undefined}
-            aria-describedby={describe('city')}
-          />
-        </FormField>
       </div>
-      <FormField id="vendor-contact" label="Kontak" optional hint="Email atau nomor telepon" error={errors.contact}>
-        <Input
-          id="vendor-contact"
-          value={form.contact}
-          onChange={(e) => set('contact', e.target.value)}
-          aria-invalid={!!errors.contact || undefined}
-          aria-describedby={describe('contact')}
-        />
-      </FormField>
-      <FormField id="vendor-payment_terms" label="Termin pembayaran" error={errors.payment_terms}>
-        <OptionSelect
-          id="vendor-payment_terms"
-          value={form.payment_terms}
-          onValueChange={(value) => set('payment_terms', value as PaymentTerms)}
-          options={PAYMENT_TERMS_OPTIONS}
-          placeholder="Pilih termin pembayaran"
-          invalid={!!errors.payment_terms}
-          describedBy={describe('payment_terms')}
-        />
-      </FormField>
-      <DialogFooter className="mt-2">
-        <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>
-          Batal
-        </Button>
-        <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Menyimpan...' : 'Simpan'}
-        </Button>
-      </DialogFooter>
-    </form>
+      <TextInput
+        id="vendor-contact"
+        labelText="Kontak (opsional)"
+        helperText="Email atau nomor telepon"
+        value={form.contact}
+        onChange={(e) => set('contact', e.target.value)}
+        invalid={!!errors.contact}
+        invalidText={errors.contact}
+      />
+      <Select
+        id="vendor-payment_terms"
+        labelText="Termin pembayaran"
+        value={form.payment_terms}
+        onChange={(e) => set('payment_terms', e.target.value as PaymentTerms)}
+        invalid={!!errors.payment_terms}
+        invalidText={errors.payment_terms}
+      >
+        <SelectItem value="" text="Pilih termin pembayaran" disabled hidden />
+        {PAYMENT_TERMS_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value} text={o.label} />
+        ))}
+      </Select>
+    </FormModal>
   )
 }

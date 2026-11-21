@@ -1,13 +1,14 @@
-import { Link } from 'react-router'
-import { Button } from '@/components/ui/button'
+import { Button } from '@carbon/react'
+import { useNavigate } from 'react-router'
 
 export function NotFoundPage() {
+  const navigate = useNavigate()
   return (
-    <div className="flex flex-col items-center gap-3 py-20 text-center">
-      <p className="text-title">Halaman tidak ditemukan</p>
-      <p className="text-muted-foreground">Alamat yang dibuka tidak tersedia di ProcureWise.</p>
-      <Button asChild variant="outline" className="mt-2">
-        <Link to="/kebutuhan">Kembali ke daftar kebutuhan</Link>
+    <div className="pw-empty-state">
+      <p className="pw-empty-state__title">Halaman tidak ditemukan</p>
+      <p>Alamat yang dibuka tidak tersedia di ProcureWise.</p>
+      <Button kind="tertiary" onClick={() => navigate('/kebutuhan')}>
+        Kembali ke daftar kebutuhan
       </Button>
     </div>
   )

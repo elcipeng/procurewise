@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@carbon/react'
+import { Renew } from '@carbon/icons-react'
 
 type ErrorBoundaryProps = { children: ReactNode }
 type ErrorBoundaryState = { hasError: boolean }
@@ -19,10 +20,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (!this.state.hasError) return this.props.children
     return (
-      <div className="flex flex-col items-center gap-3 py-20 text-center">
-        <p className="text-title">Tampilan gagal dimuat</p>
-        <p className="text-muted-foreground">Data tetap aman. Muat ulang halaman untuk mencoba lagi.</p>
-        <Button variant="outline" className="mt-2" onClick={() => window.location.reload()}>
+      <div className="pw-empty-state">
+        <p className="pw-empty-state__title">Tampilan gagal dimuat</p>
+        <p>Data tetap aman. Muat ulang halaman untuk mencoba lagi.</p>
+        <Button kind="tertiary" renderIcon={Renew} onClick={() => window.location.reload()}>
           Muat ulang
         </Button>
       </div>

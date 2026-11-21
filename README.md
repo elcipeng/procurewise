@@ -33,7 +33,7 @@ FastAPI (/api/v1)
    └── db/         asyncpg ──► Neon PostgreSQL
 ```
 
-- **Frontend**: React, Vite, TypeScript, Tailwind CSS v4, shadcn/ui, Axios, TanStack Query.
+- **Frontend**: React, Vite, TypeScript, IBM Carbon Design System (`@carbon/react`, `@carbon/styles`, `@carbon/icons-react`), font IBM Plex, Axios, TanStack Query.
 - **Backend**: FastAPI, SQLAlchemy async, Alembic, asyncpg, Pydantic.
 - **ML**: paket `procurewise_ml` di `ml/` dipakai bersama oleh notebook training dan backend, jadi logika filter dan fitur saat inference sama persis dengan saat training. Model disimpan bersama metadata (versi, urutan fitur, parameter, metrik), dan backend menolak model yang urutan fiturnya berbeda.
 - **Generative AI**: Gemini dipanggil hanya dari backend dengan temperature 0,2 dan schema output JSON. API key hanya ada di environment variable. Hasil penjelasan Gemini di-cache di kolom `recommendations.explanation`.
@@ -270,16 +270,14 @@ Dependency runtime (ikut ke bundle aplikasi):
 | --- | --- | --- |
 | react | 19.3.0 | MIT |
 | react-dom | 19.3.0 | MIT |
+| react-is | 19.3.1 | MIT |
+| @carbon/react | 1.121.0 | Apache-2.0 |
+| @carbon/styles | 1.120.0 | Apache-2.0 |
+| @carbon/icons-react | 11.92.0 | Apache-2.0 |
 | @tanstack/react-query | 5.104.2 | MIT |
 | axios | 1.20.0 | MIT |
-| recharts | 3.10.1 | MIT |
 | react-router | 7.18.4 | MIT |
-| sonner | 2.0.8 | MIT |
-| radix-ui | 1.8.0 | MIT |
-| class-variance-authority | 0.7.1 | Apache-2.0 |
-| cn | 0.4.0 | MIT |
-| lucide-react | 1.55.0 | ISC |
-| tw-animate-css | 1.4.0 | MIT |
+| recharts | 3.10.1 | MIT |
 
 Dependency development (hanya dipakai saat build dan pengembangan):
 
@@ -287,9 +285,7 @@ Dependency development (hanya dipakai saat build dan pengembangan):
 | --- | --- | --- |
 | vite | 8.3.4 | MIT |
 | @vitejs/plugin-react | 6.1.2 | MIT |
-| tailwindcss | 4.3.3 | MIT |
-| @tailwindcss/vite | 4.3.3 | MIT |
-| shadcn | 4.21.4 | MIT |
+| sass | 1.108.2 | MIT |
 | typescript | 6.0.3 | Apache-2.0 |
 | oxlint | 1.87.0 | MIT |
 | prettier | 3.9.10 | MIT |
@@ -297,13 +293,14 @@ Dependency development (hanya dipakai saat build dan pengembangan):
 | @types/react | 19.3.0 | MIT |
 | @types/react-dom | 19.3.0 | MIT |
 
-Ringkasan dependency transitif runtime: 140 MIT, 13 ISC (paket d3 dari recharts dan lucide-react), 1 Apache-2.0, 1 BSD-3-Clause, 1 0BSD. Paket `next-themes` yang ikut terpasang bersama komponen toast shadcn dilepas karena aplikasi hanya memakai satu tema.
+Ringkasan dependency transitif runtime (121 paket): 84 MIT, 11 ISC (paket d3 dari recharts), 10 Apache-2.0 (paket `@carbon/*` dan `@ibm/telemetry-js`), 2 BSD-3-Clause, 1 0BSD, 1 MIT AND ISC, serta paket font IBM Plex (OFL-1.1). Dependency penting dari Carbon: flatpickr (MIT) untuk date picker, downshift (MIT), motion (MIT), dan @floating-ui/react (MIT).
 
 Font (aset tampilan, bukan kode program):
 
 | Paket | Versi | Lisensi |
 | --- | --- | --- |
-| @fontsource-variable/inter | 5.3.0 | OFL-1.1 (font Inter) |
+| @ibm/plex-sans | 2.0.0 | OFL-1.1 (font IBM Plex Sans) |
+| @ibm/plex-mono | 2.5.0 | OFL-1.1 (font IBM Plex Mono) |
 
 ### ML (`ml/requirements.txt`)
 
@@ -323,11 +320,12 @@ Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_ext
 
 ### Catatan Lisensi
 
-- **ISC** (lucide-react dan paket d3 dari recharts) adalah lisensi permisif yang secara isi setara dengan MIT dan disetujui OSI.
+- **ISC** (paket d3 dari recharts) adalah lisensi permisif yang secara isi setara dengan MIT dan disetujui OSI.
 - **PSF-2.0** (typing_extensions, sebagian greenlet) adalah lisensi permisif non-copyleft. Paket ini wajib untuk pydantic dan SQLAlchemy sehingga tidak bisa dihindari.
-- **lightningcss (MPL-2.0)** adalah dependency transitif dari vite 8 dan Tailwind CSS v4. Paket ini hanya berjalan saat build, tidak ikut ke bundle aplikasi, dan tidak dimodifikasi.
+- **lightningcss (MPL-2.0)** adalah dependency transitif dari vite 8. Paket ini hanya berjalan saat build, tidak ikut ke bundle aplikasi, dan tidak dimodifikasi.
 - Paket lain yang muncul hanya di tool build: caniuse-lite (CC-BY-4.0), isexe dan minimatch (BlueOak-1.0.0), type-fest (MIT OR CC0-1.0). Semuanya tidak ikut ke bundle.
-- **Font Inter (OFL-1.1)** dipakai sebagai font antarmuka. Lisensi OFL berlaku untuk file font, bukan kode program, dan font dibundel tanpa modifikasi.
+- **Font IBM Plex (OFL-1.1)** dipakai sebagai font antarmuka sesuai Carbon Design System. Lisensi OFL berlaku untuk file font, bukan kode program, dan font dibundel tanpa modifikasi. @carbon/styles juga menarik paket Plex lain (`@ibm/plex`, `@ibm/plex-serif`, varian Arab, Ibrani, Devanagari, Thai) dengan lisensi yang sama.
+- **@ibm/telemetry-js (Apache-2.0)** ikut terpasang bersama paket Carbon dan Plex. Skrip postinstall-nya mengirim data pemakaian paket ke IBM. Saat instalasi skrip ini bisa dimatikan dengan environment variable `IBM_TELEMETRY_DISABLED=true`, dan npm versi terbaru tidak menjalankan skrip install tanpa persetujuan.
 - Beberapa paket sengaja tidak dipakai karena lisensinya: `shap` (menarik tqdm yang MPL-2.0, diganti TreeSHAP bawaan LightGBM), `matplotlib` (lisensi berbasis PSF, diganti plotly), dan `httpx` untuk testing (menarik certifi yang MPL-2.0).
 - **certifi (MPL-2.0)** ikut terpasang sebagai dependency transitif google-genai (lewat requests dan httpx2) untuk daftar sertifikat TLS. Paket ini tidak dimodifikasi dan statusnya masih menunggu konfirmasi Dicoding bersama MPL-2.0 transitif lainnya.
 - **cffi (MIT-0)** adalah varian MIT tanpa kewajiban mencantumkan atribusi, jadi lebih longgar dari MIT.

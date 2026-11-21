@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Button, IconButton } from '@carbon/react'
+import { Add, Edit, TrashCan } from '@carbon/icons-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
+import { FilterSelect } from '@/components/FilterSelect'
 import { MaterialFormDialog } from '@/components/materials/MaterialFormDialog'
-import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
-import { Button } from '@/components/ui/button'
 import { useDeleteMaterial, useMaterials } from '@/hooks/useMaterials'
 import { handleMutationError } from '@/lib/feedback'
 import { formatDateTime } from '@/lib/format'
 import { CATEGORY_LABELS, UNIT_LABELS, toOptions } from '@/lib/labels'
+import { toast } from '@/lib/toast'
 import type { Material } from '@/types/material'
 
 const ALL = 'all'
@@ -46,13 +46,13 @@ export function MaterialsPage() {
       id: 'code',
       header: 'Kode',
       sortValue: (m) => m.code,
-      cell: (m) => <span className="font-medium text-foreground tabular-nums">{m.code}</span>,
+      cell: (m) => <span className="pw-mono">{m.code}</span>,
     },
     {
       id: 'name',
       header: 'Nama material',
       sortValue: (m) => m.name,
-      cell: (m) => <span className="block min-w-48">{m.name}</span>,
+      cell: (m) => <span className="pw-cell-wide">{m.name}</span>,
     },
     {
       id: 'category',
@@ -64,41 +64,40 @@ export function MaterialsPage() {
     {
       id: 'updated_at',
       header: 'Diperbarui',
+      className: 'pw-nowrap pw-text-secondary',
       sortValue: (m) => m.updated_at,
-      cell: (m) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(m.updated_at)}</span>,
+      cell: (m) => formatDateTime(m.updated_at),
     },
     {
       id: 'actions',
       header: 'Aksi',
-      className: 'w-24 text-right',
+      className: 'pw-cell-actions',
       cell: (m) => (
-        <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => openForm(m)} aria-label={`Ubah ${m.code}`} title="Ubah">
-            <Pencil />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        <div className="pw-row-actions">
+          <IconButton kind="ghost" size="sm" label="Ubah" onClick={() => openForm(m)} aria-label={`Ubah ${m.code}`}>
+            <Edit />
+          </IconButton>
+          <IconButton
+            kind="ghost"
+            size="sm"
+            label="Hapus"
             onClick={() => setDeleting(m)}
             aria-label={`Hapus ${m.code}`}
-            title="Hapus"
           >
-            <Trash2 />
-          </Button>
+            <TrashCan />
+          </IconButton>
         </div>
       ),
     },
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="pw-page">
       <PageHeader
         title="Material"
         description="Daftar bahan produk, jasa, dan packaging yang dibeli dari vendor."
         actions={
-          <Button onClick={() => openForm()}>
-            <Plus />
+          <Button renderIcon={Add} onClick={() => openForm()}>
             Tambah material
           </Button>
         }
@@ -115,12 +114,12 @@ export function MaterialsPage() {
         onRetry={() => materials.refetch()}
         initialSort={{ columnId: 'code', direction: 'asc' }}
         toolbar={
-          <OptionSelect
+          <FilterSelect
+            id="material-category-filter"
+            label="Filter kategori"
             value={category}
-            onValueChange={setCategory}
+            onChange={setCategory}
             options={CATEGORY_FILTER_OPTIONS}
-            aria-label="Filter kategori"
-            className="sm:w-52"
           />
         }
       />

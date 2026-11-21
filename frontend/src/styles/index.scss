@@ -1,0 +1,531 @@
+// satu-satunya stylesheet aplikasi. komponen dan token berasal dari carbon design system,
+// kelas pw- di bawah hanya menyusun layout halaman dan selalu memakai token carbon (warna, spacing, tipografi)
+
+// font-face bawaan carbon dimatikan karena IBM Plex dimuat dari paket npm @ibm/plex-sans dan @ibm/plex-mono di main.tsx
+@use '@carbon/styles/scss/config' with (
+  $css--font-face: false
+);
+@use '@carbon/styles/scss/themes';
+@use '@carbon/styles/scss/theme' with (
+  $theme: themes.$g10
+);
+@use '@carbon/styles';
+@use '@carbon/styles/scss/theme' as *;
+@use '@carbon/styles/scss/spacing' as *;
+@use '@carbon/styles/scss/type' as *;
+@use '@carbon/styles/scss/breakpoint' as *;
+@use '@carbon/styles/scss/components/notification/tokens' as notification;
+
+$side-nav-width: 16rem;
+$header-height: 3rem;
+
+body {
+  background: $background;
+  color: $text-primary;
+}
+
+// layout UI Shell
+
+// selektor setara aturan carbon (.cds--side-nav ~ .cds--content) supaya margin konten tidak mengikuti asumsi side nav rail.
+// di bawah lg side nav tampil sebagai overlay, jadi konten tidak ikut bergeser saat menu dibuka
+.cds--side-nav ~ .cds--content.pw-content {
+  min-block-size: calc(100vh - #{$header-height});
+  margin-inline-start: 0;
+  padding: $spacing-07 $spacing-05 $spacing-09;
+  background: $background;
+
+  @include breakpoint(md) {
+    padding-inline: $spacing-07;
+  }
+
+  @include breakpoint(lg) {
+    margin-inline-start: $side-nav-width;
+  }
+}
+
+.pw-slow-notice {
+  margin-block-end: $spacing-06;
+  max-inline-size: none;
+}
+
+.pw-server-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding-inline: $spacing-05;
+  color: $text-secondary;
+  @include type-style('label-01');
+
+  svg {
+    fill: $icon-secondary;
+  }
+}
+
+.pw-server-status--ok svg {
+  fill: $support-success;
+}
+
+.pw-server-status--error svg {
+  fill: $support-error;
+}
+
+// label status disembunyikan di layar kecil, ikon tetap memberi tanda dan role status tetap dibacakan
+.pw-server-status__label {
+  @include breakpoint-down(md) {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+.pw-toast-region {
+  position: fixed;
+  z-index: 9000;
+  inset-block-start: calc(#{$header-height} + #{$spacing-03});
+  inset-inline-end: $spacing-05;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  max-inline-size: calc(100vw - #{$spacing-07});
+}
+
+// struktur halaman
+
+.pw-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-07;
+  min-inline-size: 0;
+}
+
+.pw-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-05;
+}
+
+.pw-page-header__title {
+  @include type-style('productive-heading-04');
+}
+
+.pw-page-header__description {
+  margin-block-start: $spacing-02;
+  color: $text-secondary;
+  @include type-style('body-01');
+}
+
+.pw-page-header__actions,
+.pw-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+}
+
+.pw-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  min-inline-size: 0;
+}
+
+.pw-section__title {
+  @include type-style('productive-heading-03');
+}
+
+.pw-section__subtitle {
+  @include type-style('productive-heading-02');
+}
+
+.pw-section__description {
+  margin-block-start: $spacing-02;
+  color: $text-secondary;
+  @include type-style('body-compact-01');
+}
+
+.pw-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-05;
+  padding: $spacing-10 $spacing-05;
+  color: $text-secondary;
+  text-align: center;
+  @include type-style('body-01');
+}
+
+.pw-empty-state--bordered {
+  border: 1px dashed $border-strong-01;
+  background: $layer-01;
+}
+
+.pw-empty-state__title {
+  color: $text-primary;
+  @include type-style('productive-heading-03');
+}
+
+.pw-skeleton-block {
+  inline-size: 100%;
+  block-size: 8rem;
+}
+
+.pw-skeleton-block--tall {
+  block-size: 16rem;
+}
+
+// teks dan utilitas tipografi
+
+.pw-caption {
+  color: $text-secondary;
+  @include type-style('helper-text-01');
+}
+
+.pw-label {
+  margin-block-end: $spacing-03;
+  color: $text-secondary;
+  @include type-style('label-01');
+}
+
+.pw-block {
+  display: block;
+}
+
+.pw-strong {
+  font-weight: 600;
+}
+
+.pw-text-secondary {
+  color: $text-secondary;
+}
+
+.pw-text-error {
+  color: $text-error;
+}
+
+.pw-mono {
+  font-family: 'IBM Plex Mono', monospace;
+
+  input {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+.pw-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-nowrap {
+  white-space: nowrap;
+}
+
+.pw-align-end,
+.cds--data-table td.pw-align-end,
+.cds--data-table th.pw-align-end {
+  text-align: end;
+
+  .cds--table-header-label {
+    text-align: end;
+  }
+}
+
+.pw-icon--success {
+  fill: $support-success;
+}
+
+.pw-icon--error {
+  fill: $support-error;
+}
+
+.pw-icon--interactive {
+  fill: $icon-interactive;
+}
+
+.pw-icon-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  @include type-style('body-compact-01');
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-03;
+  }
+
+  svg {
+    flex-shrink: 0;
+    margin-block-start: $spacing-01;
+  }
+}
+
+// tabel
+
+.pw-table {
+  min-inline-size: 0;
+}
+
+.pw-table__scroll {
+  overflow-x: auto;
+}
+
+.pw-table__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-05;
+  padding-block: $spacing-09;
+  color: $text-secondary;
+  text-align: center;
+}
+
+.pw-toolbar {
+  .cds--toolbar-search-container-persistent {
+    flex: 1 1 auto;
+  }
+
+  @include breakpoint-down(md) {
+    flex-wrap: wrap;
+    block-size: auto;
+
+    .cds--toolbar-search-container-persistent {
+      flex-basis: 100%;
+    }
+  }
+}
+
+.pw-toolbar--start {
+  justify-content: flex-start;
+}
+
+.pw-filter-select {
+  min-inline-size: 11rem;
+
+  @include breakpoint-down(md) {
+    flex: 1 1 50%;
+  }
+}
+
+.pw-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+}
+
+.pw-cell-wide {
+  min-inline-size: 14rem;
+}
+
+.pw-cell-actions {
+  text-align: end;
+}
+
+.pw-row-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// tile dan ringkasan
+
+.pw-tile {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  min-inline-size: 0;
+}
+
+.pw-tile__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-03;
+}
+
+.pw-summary {
+  display: grid;
+  gap: $spacing-06 $spacing-07;
+  grid-template-columns: 1fr;
+
+  @include breakpoint(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include breakpoint(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.pw-summary__item--wide {
+  grid-column: 1 / -1;
+}
+
+.pw-summary__label {
+  margin-block-end: $spacing-02;
+  color: $text-secondary;
+  @include type-style('label-01');
+}
+
+.pw-summary__value {
+  @include type-style('body-compact-01');
+}
+
+// perbandingan vendor
+
+.pw-compare {
+  display: grid;
+  gap: $spacing-05;
+  grid-template-columns: 1fr;
+
+  @include breakpoint(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+// peringkat 1 ditandai garis atas warna interaktif, bukan bayangan atau warna di luar token
+.pw-compare__tile--first {
+  box-shadow: inset 0 2px 0 0 $border-interactive;
+}
+
+.pw-compare__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+
+  .cds--tag {
+    margin: 0;
+  }
+}
+
+.pw-compare__name {
+  @include type-style('productive-heading-02');
+}
+
+.pw-metrics {
+  display: flex;
+  flex-direction: column;
+}
+
+.pw-metrics__row {
+  display: flex;
+  justify-content: space-between;
+  gap: $spacing-05;
+  padding: $spacing-03;
+  border-block-end: 1px solid $border-subtle-01;
+  @include type-style('body-compact-01');
+
+  dt {
+    color: $text-secondary;
+  }
+}
+
+// nilai terbaik memakai warna latar notifikasi sukses carbon supaya maknanya sama dengan hijau di teks halaman
+.pw-metrics__row--best {
+  background: notification.$notification-background-success;
+  box-shadow: inset 3px 0 0 0 $support-success;
+
+  dt,
+  dd {
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+// penjelasan
+
+.pw-explanation {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-06;
+}
+
+.pw-explanation__summary {
+  @include type-style('body-01');
+}
+
+.pw-explanation__vendor {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  padding: $spacing-05;
+  background: $layer-02;
+}
+
+.pw-explanation__tradeoff {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-03;
+  @include type-style('body-compact-01');
+
+  svg {
+    flex-shrink: 0;
+    margin-block-start: $spacing-01;
+  }
+}
+
+.pw-notification {
+  max-inline-size: none;
+}
+
+// daftar risiko bisa panjang, jadi judul dan isi notifikasi disusun atas bawah
+.pw-notification--stacked .cds--inline-notification__text-wrapper {
+  flex-direction: column;
+}
+
+.pw-risk-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding-block-end: $spacing-04;
+  padding-inline-start: $spacing-05;
+  list-style: square;
+  @include type-style('body-compact-01');
+}
+
+.pw-structured-list {
+  margin-block-end: 0;
+  background: $layer-01;
+
+  .cds--structured-list-td,
+  .cds--structured-list-th {
+    padding-inline: $spacing-05;
+  }
+}
+
+// form dalam modal
+
+.pw-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-06;
+}
+
+.pw-form__row {
+  display: grid;
+  gap: $spacing-06 $spacing-05;
+  grid-template-columns: 1fr;
+
+  @include breakpoint(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pw-form__row--code {
+  @include breakpoint(md) {
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
+}
+
+// pesan validasi dari backend ditulis huruf kecil, huruf pertama dikapitalkan saat tampil di bawah field
+.cds--form-requirement::first-letter {
+  text-transform: uppercase;
+}
+
+// date picker carbon punya lebar tetap, di form disamakan dengan lebar kolom seperti input lain
+.pw-form .cds--date-picker,
+.pw-form .cds--date-picker-container,
+.pw-form .cds--date-picker__input {
+  inline-size: 100%;
+}

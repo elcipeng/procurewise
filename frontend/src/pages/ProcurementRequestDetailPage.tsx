@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ListOrdered, Loader2, RefreshCw, RotateCw } from 'lucide-react'
+import { Button, InlineLoading, SkeletonPlaceholder, SkeletonText } from '@carbon/react'
+import { ArrowLeft, ListNumbered, Renew } from '@carbon/icons-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { RequestSummary } from '@/components/procurement/RequestSummary'
 import { RecommendationResultView } from '@/components/recommendations/RecommendationResultView'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useProcurementRequest } from '@/hooks/useProcurementRequests'
 import { useRecommendation, useRunRecommendation } from '@/hooks/useRecommendation'
 import { handleMutationError } from '@/lib/feedback'
 import { UNIT_LABELS } from '@/lib/labels'
+import { toast } from '@/lib/toast'
 import type { RequestDetailState, RequestStatus } from '@/types/procurement'
 import type { RecommendationResult } from '@/types/recommendation'
 import type { ApiEnvelope } from '@/types/api'
@@ -34,21 +33,14 @@ export function ProcurementRequestDetailPage() {
 
 function BackButton() {
   return (
-    <Button asChild variant="outline">
-      <Link to="/kebutuhan">
-        <ArrowLeft />
-        Kembali
-      </Link>
+    <Button as={Link} to="/kebutuhan" kind="secondary" renderIcon={ArrowLeft}>
+      Kembali
     </Button>
   )
 }
 
 function MessageBox({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center text-muted-foreground">
-      {children}
-    </div>
-  )
+  return <div className="pw-empty-state pw-empty-state--bordered">{children}</div>
 }
 
 function RequestDetail({ requestId }: { requestId: number }) {
@@ -73,9 +65,9 @@ function RequestDetail({ requestId }: { requestId: number }) {
 
   if (request.isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-32 w-full" />
+      <div className="pw-page">
+        <SkeletonText heading width="16rem" />
+        <SkeletonPlaceholder className="pw-skeleton-block" />
       </div>
     )
   }
@@ -84,15 +76,12 @@ function RequestDetail({ requestId }: { requestId: number }) {
     const notFound = request.error instanceof ApiError && request.error.status === 404
     return (
       <MessageBox>
-        <p className="text-title text-foreground">
-          {notFound ? 'Kebutuhan tidak ditemukan' : 'Kebutuhan gagal dimuat'}
-        </p>
+        <p className="pw-empty-state__title">{notFound ? 'Kebutuhan tidak ditemukan' : 'Kebutuhan gagal dimuat'}</p>
         <p>{request.error.message}</p>
-        <div className="flex gap-2">
+        <div className="pw-button-row">
           <BackButton />
           {!notFound && (
-            <Button variant="outline" onClick={() => request.refetch()}>
-              <RotateCw />
+            <Button kind="tertiary" renderIcon={Renew} onClick={() => request.refetch()}>
               Coba lagi
             </Button>
           )}
@@ -106,7 +95,7 @@ function RequestDetail({ requestId }: { requestId: number }) {
   const result = recommendation.data
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="pw-page">
       <PageHeader
         title={`Kebutuhan #${data.id}`}
         description={`${data.material_name}, ${data.qty.toLocaleString('id-ID')} ${UNIT_LABELS[data.material_unit]}`}
@@ -114,8 +103,7 @@ function RequestDetail({ requestId }: { requestId: number }) {
           <>
             <BackButton />
             {canRank && result && (
-              <Button onClick={() => setConfirmOpen(true)} disabled={isRunning}>
-                <RefreshCw />
+              <Button renderIcon={Renew} onClick={() => setConfirmOpen(true)} disabled={isRunning}>
                 Susun ulang
               </Button>
             )}
@@ -124,21 +112,19 @@ function RequestDetail({ requestId }: { requestId: number }) {
       />
       <RequestSummary request={data} />
 
-      <section className="flex flex-col gap-4" aria-busy={isRunning || recommendation.isPending}>
-        <h2 className="text-title text-foreground">Rekomendasi vendor</h2>
+      <section className="pw-section" aria-busy={isRunning || recommendation.isPending}>
+        <h2 className="pw-section__title">Rekomendasi vendor</h2>
 
         {isRunning ? (
           <MessageBox>
-            <Loader2 className="size-6 animate-spin text-primary" />
-            <p>Menyusun peringkat vendor dari penawaran dan histori transaksi...</p>
+            <InlineLoading description="Menyusun peringkat vendor dari penawaran dan histori transaksi..." />
           </MessageBox>
         ) : recommendation.isPending ? (
-          <Skeleton className="h-64 w-full" />
+          <SkeletonPlaceholder className="pw-skeleton-block pw-skeleton-block--tall" />
         ) : recommendation.error ? (
           <MessageBox>
             <p>{recommendation.error.message}</p>
-            <Button variant="outline" onClick={() => recommendation.refetch()}>
-              <RotateCw />
+            <Button kind="tertiary" renderIcon={Renew} onClick={() => recommendation.refetch()}>
               Coba lagi
             </Button>
           </MessageBox>
@@ -147,8 +133,7 @@ function RequestDetail({ requestId }: { requestId: number }) {
         ) : canRank ? (
           <MessageBox>
             <p>Belum ada rekomendasi untuk kebutuhan ini.</p>
-            <Button onClick={run}>
-              <ListOrdered />
+            <Button renderIcon={ListNumbered} onClick={run}>
               Buat rekomendasi
             </Button>
           </MessageBox>

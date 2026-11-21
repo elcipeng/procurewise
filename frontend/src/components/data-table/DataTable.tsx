@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { TableToolbar, TableToolbarContent, TableToolbarSearch } from '@carbon/react'
 import { DataTableView, type Column, type SortState } from './DataTableView'
 
 export type { Column } from './DataTableView'
@@ -60,46 +59,42 @@ export function DataTable<T>({
   const pageRows = visibleRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setPage(1)
-            }}
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-            className="pl-8"
-          />
-        </div>
-        {toolbar && <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">{toolbar}</div>}
-      </div>
-
-      <DataTableView
-        rows={pageRows}
-        columns={columns}
-        getRowKey={getRowKey}
-        emptyMessage={query.trim() ? 'Tidak ada data yang cocok dengan pencarian.' : emptyMessage}
-        isLoading={isLoading}
-        error={error}
-        onRetry={onRetry}
-        sort={sort}
-        onSortChange={setSort}
-        pagination={{
-          page: currentPage,
-          pageCount,
-          pageSize,
-          total: visibleRows.length,
-          onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size)
-            setPage(1)
-          },
-        }}
-      />
-    </div>
+    <DataTableView
+      rows={pageRows}
+      columns={columns}
+      getRowKey={getRowKey}
+      emptyMessage={query.trim() ? 'Tidak ada data yang cocok dengan pencarian.' : emptyMessage}
+      isLoading={isLoading}
+      error={error}
+      onRetry={onRetry}
+      sort={sort}
+      onSortChange={setSort}
+      toolbar={
+        <TableToolbar aria-label="Pencarian dan filter">
+          <TableToolbarContent className="pw-toolbar">
+            <TableToolbarSearch
+              persistent
+              value={query}
+              onChange={(event) => {
+                setQuery(typeof event === 'string' ? event : event.target.value)
+                setPage(1)
+              }}
+              placeholder={searchPlaceholder}
+              labelText={searchPlaceholder}
+            />
+            {toolbar}
+          </TableToolbarContent>
+        </TableToolbar>
+      }
+      pagination={{
+        page: currentPage,
+        pageSize,
+        total: visibleRows.length,
+        onChange: (nextPage, nextSize) => {
+          setPage(nextSize === pageSize ? nextPage : 1)
+          setPageSize(nextSize)
+        },
+      }}
+    />
   )
 }

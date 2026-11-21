@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { Pencil, Plus, Power, PowerOff } from 'lucide-react'
-import { toast } from 'sonner'
+import { Button, IconButton, Tag } from '@carbon/react'
+import { Add, Edit, Power } from '@carbon/icons-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
-import { OptionSelect } from '@/components/OptionSelect'
+import { FilterSelect } from '@/components/FilterSelect'
 import { PageHeader } from '@/components/PageHeader'
-import { StatusBadge } from '@/components/StatusBadge'
-import { Button } from '@/components/ui/button'
 import { VendorFormDialog } from '@/components/vendors/VendorFormDialog'
 import { useSetVendorActive, useVendors } from '@/hooks/useVendors'
 import { handleMutationError } from '@/lib/feedback'
 import { formatDateTime } from '@/lib/format'
 import { CATEGORY_LABELS, PAYMENT_TERMS_LABELS, toOptions } from '@/lib/labels'
+import { toast } from '@/lib/toast'
 import type { Vendor } from '@/types/vendor'
 
 const ALL = 'all'
@@ -58,9 +57,9 @@ export function VendorsPage() {
       header: 'Nama vendor',
       sortValue: (v) => v.name,
       cell: (v) => (
-        <div className="min-w-48">
-          <p className="font-medium text-foreground">{v.name}</p>
-          <p className="text-caption text-muted-foreground">{v.contact ?? 'Kontak belum diisi'}</p>
+        <div className="pw-cell-stack pw-cell-wide">
+          <span>{v.name}</span>
+          <span className="pw-caption">{v.contact ?? 'Kontak belum diisi'}</span>
         </div>
       ),
     },
@@ -82,46 +81,48 @@ export function VendorsPage() {
       header: 'Status',
       sortValue: (v) => (v.is_active ? 0 : 1),
       cell: (v) => (
-        <StatusBadge tone={v.is_active ? 'success' : 'neutral'} label={v.is_active ? 'Aktif' : 'Nonaktif'} />
+        <Tag type={v.is_active ? 'green' : 'gray'} size="sm">
+          {v.is_active ? 'Aktif' : 'Nonaktif'}
+        </Tag>
       ),
     },
     {
       id: 'updated_at',
       header: 'Diperbarui',
+      className: 'pw-nowrap pw-text-secondary',
       sortValue: (v) => v.updated_at,
-      cell: (v) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(v.updated_at)}</span>,
+      cell: (v) => formatDateTime(v.updated_at),
     },
     {
       id: 'actions',
       header: 'Aksi',
-      className: 'w-24 text-right',
+      className: 'pw-cell-actions',
       cell: (v) => (
-        <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => openForm(v)} aria-label={`Ubah ${v.name}`} title="Ubah">
-            <Pencil />
-          </Button>
+        <div className="pw-row-actions">
+          <IconButton kind="ghost" size="sm" label="Ubah" onClick={() => openForm(v)} aria-label={`Ubah ${v.name}`}>
+            <Edit />
+          </IconButton>
           {v.is_active ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label="Nonaktifkan"
               onClick={() => setDeactivating(v)}
               aria-label={`Nonaktifkan ${v.name}`}
-              title="Nonaktifkan"
             >
-              <PowerOff />
-            </Button>
+              <Power />
+            </IconButton>
           ) : (
-            <Button
-              variant="ghost"
-              size="icon-sm"
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label="Aktifkan"
               onClick={() => changeActive(v, true)}
               disabled={setActive.isPending}
               aria-label={`Aktifkan ${v.name}`}
-              title="Aktifkan"
             >
               <Power />
-            </Button>
+            </IconButton>
           )}
         </div>
       ),
@@ -129,13 +130,12 @@ export function VendorsPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="pw-page">
       <PageHeader
         title="Vendor"
         description="Kelola vendor bahan produk, jasa bordir dan printing, serta packaging."
         actions={
-          <Button onClick={() => openForm()}>
-            <Plus />
+          <Button renderIcon={Add} onClick={() => openForm()}>
             Tambah vendor
           </Button>
         }
@@ -153,19 +153,19 @@ export function VendorsPage() {
         initialSort={{ columnId: 'name', direction: 'asc' }}
         toolbar={
           <>
-            <OptionSelect
+            <FilterSelect
+              id="vendor-category-filter"
+              label="Filter kategori"
               value={category}
-              onValueChange={setCategory}
+              onChange={setCategory}
               options={CATEGORY_FILTER_OPTIONS}
-              aria-label="Filter kategori"
-              className="sm:w-52"
             />
-            <OptionSelect
+            <FilterSelect
+              id="vendor-status-filter"
+              label="Filter status"
               value={status}
-              onValueChange={setStatus}
+              onChange={setStatus}
               options={STATUS_FILTER_OPTIONS}
-              aria-label="Filter status"
-              className="sm:w-36"
             />
           </>
         }

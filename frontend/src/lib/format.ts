@@ -28,3 +28,7 @@ export const formatPercent = (value: number) => percentFormatter.format(value)
 export const formatNumber = (value: number) => decimalFormatter.format(value)
 
 export const todayInJakarta = () => isoDateFormatter.format(new Date())
+
+// tanggal dari date picker adalah tengah malam waktu lokal, jadi bagian tanggalnya diambil tanpa konversi zona
+export const toIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
