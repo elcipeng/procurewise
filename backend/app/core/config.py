@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     database_url: str | None = None
+    # Vercel mengisi env VERCEL=1 di fungsi serverless, koneksi DB lalu dibuka per request tanpa pool
+    serverless: bool = Field(default=False, validation_alias="VERCEL")
     cors_origins: str = "http://localhost:5173"
 
     ml_dir: Path = REPO_ML_DIR

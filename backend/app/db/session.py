@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from functools import lru_cache
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 from app.core.errors import AppError
@@ -12,6 +13,12 @@ def get_engine() -> AsyncEngine | None:
     settings = get_settings()
     if not settings.database_url:
         return None
+    if settings.serverless:
+        # instance serverless bisa dibekukan kapan saja, pool yang tersisa hanya meninggalkan koneksi menggantung di Neon.
+        # statement cache dimatikan supaya URL pooler Neon (mode transaksi) tetap aman dipakai
+        return create_async_engine(
+            settings.database_url, poolclass=NullPool, connect_args={"statement_cache_size": 0}
+        )
     return create_async_engine(settings.database_url, pool_pre_ping=True)
 
 

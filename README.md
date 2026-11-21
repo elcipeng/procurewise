@@ -1,10 +1,3 @@
----
-title: ProcureWise API
-sdk: docker
-app_port: 7860
-license: mit
----
-
 # ProcureWise
 
 Web app decision support untuk procurement UMKM. User memasukkan kebutuhan pengadaan, model machine learning menyusun ranking vendor, lalu Gemini menjelaskan alasan dan trade-off dari ranking tersebut. Keputusan akhir tetap ada di tangan user (owner/admin).
@@ -89,32 +82,25 @@ File `.env` tidak boleh di-commit. Yang di-commit hanya `.env.example`.
 
 ## Deploy
 
-| Bagian | Layanan | Konfigurasi |
+Frontend dan backend dideploy sebagai satu project Vercel dengan fitur Services (satu domain), diatur oleh `vercel.json` di root repo. Database memakai Neon PostgreSQL.
+
+| Service | Root | Keterangan |
 | --- | --- | --- |
-| Backend | Hugging Face Spaces (SDK Docker, CPU basic) | `Dockerfile` di root repo menyalin `backend/`, `ml/procurewise_ml/`, dan `ml/models/`, lalu menjalankan `uvicorn app.main:app --host 0.0.0.0 --port 7860`. Blok YAML di awal README ini adalah konfigurasi Space (`sdk: docker`, `app_port: 7860`) |
-| Frontend | Vercel (Vite) | root directory `frontend`, build `npm run build`, output `dist`. `vercel.json` mengarahkan semua rute ke `index.html` supaya rute seperti `/kebutuhan/2103` bisa dibuka langsung |
-| Database | Neon PostgreSQL | migrasi dijalankan dari lokal dengan `alembic upgrade head` |
+| `backend` | `backend/` | FastAPI (`app.main:app`) sebagai fungsi Python. Modul `ml/procurewise_ml` dan model `ml/models` ikut dibundel lewat `includeFiles` karena dipakai saat inference |
+| `frontend` | `frontend/` | Vite, output `dist`, semua rute diarahkan ke `index.html` supaya rute seperti `/kebutuhan/2103` bisa dibuka langsung |
 
-Backend membutuhkan modul `procurewise_ml` (filter keras dan fitur) dan file model `ml/models/lgbm_v1.txt` saat inference. Di dalam container keduanya ada di `/app/ml`, dan lokasinya sudah diatur di `Dockerfile` lewat `ML_DIR=/app/ml` dan `ML_MODEL_DIR=/app/ml/models`.
+Rewrite di `vercel.json` mengirim `/api/(.*)` ke service `backend` dan sisanya ke `frontend`. Backend menerima path lengkap, jadi route tetap `/api/v1/...`. Karena satu domain, frontend memanggil API lewat path relatif `/api/v1`.
 
-Menjalankan image yang sama secara lokal:
+Di fungsi serverless (env `VERCEL=1` dari Vercel), koneksi database memakai NullPool: koneksi dibuka per request dan ditutup setelahnya. Migrasi dijalankan dari lokal dengan `alembic upgrade head`.
 
-```bash
-docker build -t procurewise-api .
-docker run -p 7860:7860 --env-file backend/.env procurewise-api
-```
-
-| Secret atau variable (Settings Space) | Nilai |
+| Environment variable (Vercel, Settings, Environment Variables) | Nilai |
 | --- | --- |
-| `DATABASE_URL` (secret) | URL koneksi Neon |
-| `GEMINI_API_KEY` (secret) | API key Gemini |
+| `DATABASE_URL` | URL koneksi Neon |
+| `GEMINI_API_KEY` | API key Gemini |
 | `GEMINI_MODEL` | model Gemini yang dipakai, contoh `gemini-4-hydrogen` |
-| `CORS_ORIGINS` | URL frontend di Vercel, contoh `https://procurewise.vercel.app` |
 | `ENVIRONMENT` | `production` |
-
-| Variabel (Vercel) | Nilai |
-| --- | --- |
-| `VITE_API_BASE_URL` | URL Space ditambah `/api/v1`, formatnya `https://<user>-<space>.hf.space/api/v1` |
+| `CORS_ORIGINS` | domain project Vercel, contoh `https://procurewise.vercel.app` (tidak wajib karena satu domain) |
+| `VITE_API_BASE_URL` | `/api/v1` |
 
 ## SBOM (Software Bill of Materials)
 
