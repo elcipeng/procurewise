@@ -72,8 +72,13 @@ def load_model() -> LoadedModel | None:
         if metadata["feature_columns"] != list(ml_config.FEATURE_COLUMNS):
             raise ValueError("urutan fitur model berbeda dengan procurewise_ml.config")
         return LoadedModel(booster=booster, version=metadata["model_version"])
-    except Exception:
-        logger.exception("model LightGBM gagal dimuat, ranking memakai fallback weighted sum")
+    except Exception as exc:
+        # tipe dan pesan exception ditulis di baris log supaya penyebabnya terbaca langsung di Vercel Logs
+        hint = " (library OpenMP libgomp.so.1 tidak ada di runtime)" if "libgomp" in str(exc) else ""
+        logger.exception(
+            "model LightGBM gagal dimuat dari %s, ranking memakai fallback weighted sum: %s: %s%s",
+            _model_dir() if ML_AVAILABLE else "-", type(exc).__name__, exc, hint,
+        )
         return None
 
 
