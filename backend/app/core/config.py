@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # kosong berarti penjelasan rekomendasi langsung memakai template tanpa memanggil Gemini
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-4-hydrogen"
+    gemini_model: str = "gemini-3.5-flash-lite"
     gemini_timeout_seconds: float = 20.0
 
     @field_validator("database_url")

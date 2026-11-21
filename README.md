@@ -1,26 +1,64 @@
 # ProcureWise
 
-Web app decision support untuk procurement UMKM. User memasukkan kebutuhan pengadaan, model machine learning menyusun ranking vendor, lalu Gemini menjelaskan alasan dan trade-off dari ranking tersebut. Keputusan akhir tetap ada di tangan user (owner/admin).
+Web app decision support untuk procurement UMKM. User memasukkan kebutuhan pengadaan, model LightGBM LambdaRank menyusun peringkat vendor, lalu Gemini menjelaskan alasan dan trade-off dari peringkat tersebut. Keputusan akhir tetap ada di tangan user (owner atau admin).
 
-Proyek ini adalah Capstone Project Dicoding Bootcamp Batch 15 (ID grup DB15-I037, learning path Generative AI) untuk use case Firaza UC3: Vendor Recommendation & Procurement Assistant.
+Proyek ini adalah Capstone Project Dicoding Bootcamp Batch 15 (ID grup DB15-I037, learning path Generative AI) untuk use case Firaza UC3: Vendor Recommendation & Procurement Assistant. Firaza adalah UMKM retail hampers dan personalized gifts (handuk, sajadah) yang hampir seluruh penjualannya online.
 
-> Status: tahap setup awal. Belum ada fitur selain endpoint health check.
+- **Live URL:** https://procurewise-rouge.vercel.app
+- **Dokumentasi API interaktif:** https://procurewise-rouge.vercel.app/docs
+
+## Fitur
+
+- **Kelola vendor, material, dan penawaran.** CRUD lewat web dengan pencarian, sort, paginasi, form dalam modal, dan pesan validasi per field. Vendor dinonaktifkan (soft delete) supaya histori transaksi tetap utuh.
+- **Input kebutuhan procurement.** Material, jumlah, tanggal dibutuhkan, prioritas, budget, dan catatan.
+- **Peringkat vendor dengan model AI.** Kandidat dicek dulu dengan filter keras (ketersediaan, MOQ, kapasitas, budget). Kandidat yang lolos diberi skor oleh LightGBM LambdaRank dari 16 fitur penawaran, histori, dan konteks.
+- **Perbandingan vendor.** Tiga vendor teratas dibandingkan berdampingan dengan nilai terbaik ditandai, ada tabel peringkat lengkap, dan vendor yang gugur tampil beserta alasannya.
+- **Faktor model per vendor.** Tiga kontribusi fitur terbesar dari TreeSHAP bawaan LightGBM (`pred_contrib`) ditampilkan dengan arah menaikkan atau menurunkan peringkat.
+- **Penjelasan Generative AI.** Gemini menerima JSON terstruktur (request, 3 vendor teratas, metrik, kontribusi fitur, vendor gugur) dan mengembalikan ringkasan, kelebihan dan kekurangan per vendor, trade-off, dan catatan risiko dalam bahasa Indonesia. Setiap angka di output dicek terhadap input.
+- **Tahan gagal.** Kalau Gemini gagal, kena limit, atau angkanya tidak cocok setelah satu kali generate ulang, penjelasan memakai template berbasis aturan. Kalau model LightGBM gagal dimuat, peringkat memakai baseline weighted sum dan UI menampilkan label metode cadangan.
+- **Responsif** untuk mobile, tablet, dan desktop.
+
+## Arsitektur
+
+```
+Browser (React SPA)
+   │  Axios + TanStack Query, path relatif /api/v1
+   ▼
+FastAPI (/api/v1)
+   ├── api/        router tipis, validasi Pydantic, envelope response standar
+   ├── services/   aturan bisnis dan batas transaksi
+   │     ├── ranking_engine       ──► procurewise_ml (filter keras, 16 fitur, LightGBM, fallback weighted sum)
+   │     └── explanation_service  ──► Gemini (google-genai), validasi angka, retry, fallback template
+   ├── models/     SQLAlchemy async (7 tabel), migrasi Alembic
+   └── db/         asyncpg ──► Neon PostgreSQL
+```
+
+- **Frontend**: React, Vite, TypeScript, Tailwind CSS v4, shadcn/ui, Axios, TanStack Query.
+- **Backend**: FastAPI, SQLAlchemy async, Alembic, asyncpg, Pydantic.
+- **ML**: paket `procurewise_ml` di `ml/` dipakai bersama oleh notebook training dan backend, jadi logika filter dan fitur saat inference sama persis dengan saat training. Model disimpan bersama metadata (versi, urutan fitur, parameter, metrik), dan backend menolak model yang urutan fiturnya berbeda.
+- **Generative AI**: Gemini dipanggil hanya dari backend dengan temperature 0,2 dan schema output JSON. API key hanya ada di environment variable. Hasil penjelasan Gemini di-cache di kolom `recommendations.explanation`.
+- **Deploy**: satu project Vercel (Services) untuk backend dan frontend di satu domain, database Neon PostgreSQL.
+
+Alur utama: user membuat kebutuhan, lalu `POST /api/v1/recommendations` menjalankan filter keras, fitur, dan model, kemudian menyimpan semua kandidat ke tabel `recommendations`. Halaman detail menampilkan peringkat dan memanggil `POST /api/v1/recommendations/{request_id}/explanation` untuk penjelasan.
 
 ## Struktur Repo
 
 ```
 procurewise/
-├── frontend/   React + Vite + TypeScript + Tailwind CSS + shadcn/ui
-├── backend/    FastAPI + SQLAlchemy (async) + Alembic + asyncpg
-└── ml/         Data sintetis, EDA, training, dan evaluasi model ranking
-    └── notebooks/
+├── frontend/   React SPA (pages, components, api, hooks, types)
+├── backend/    FastAPI (api, schemas, services, models, db), migrasi Alembic, script seed
+└── ml/
+    ├── generator/        generator data sintetis + validasi constraint
+    ├── procurewise_ml/   fitur, filter keras, baseline, evaluasi, ranker
+    ├── models/           lgbm_v1.txt dan metadata lgbm_v1.json
+    └── notebooks/        01 EDA, 02 baseline, 03 LightGBM
 ```
 
 ## Prasyarat
 
 - Node.js 20 atau lebih baru (dikembangkan dengan Node 24)
-- Python 3.14
-- PostgreSQL (lokal, Neon, atau Supabase)
+- Python 3.14 (3.13 juga didukung)
+- PostgreSQL (lokal atau Neon)
 
 ## Menjalankan Secara Lokal
 
@@ -32,27 +70,28 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
-cp .env.example .env            # lalu isi DATABASE_URL
+cp .env.example .env            # lalu isi DATABASE_URL dan GEMINI_API_KEY
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-- Health check: http://localhost:8000/api/v1/health
+Alternatif dengan uv: jalankan `uv sync` dari folder `backend/`. Perintah ini memakai `pyproject.toml` dan `uv.lock`, sekaligus memasang `ml/` sebagai paket `procurewise-ml`. Saat development backend membaca modul `procurewise_ml` dan model langsung dari folder `ml/` di repo.
+
+- Health check: http://localhost:8000/api/v1/health (field `model` menunjukkan model ranking yang aktif)
 - Dokumentasi API (Swagger): http://localhost:8000/docs
 
-Migrasi database memakai Alembic (`alembic upgrade head`). URL database dibaca dari `DATABASE_URL`, bukan dari `alembic.ini`.
-
-Untuk mengisi database dengan data sintetis, generate data dulu di `ml/` (lihat bagian ML), lalu dari folder `backend/` jalankan `python scripts/seed.py`. Script ini mengosongkan semua tabel (termasuk `recommendations`) lalu mengisi ulang 6 tabel dalam satu transaksi, jadi aman dijalankan berulang kali.
+Untuk mengisi database dengan data sintetis, generate data dulu di `ml/` (lihat bagian ML), lalu dari folder `backend/` jalankan `python scripts/seed.py`. Script ini mengosongkan semua tabel (termasuk `recommendations`) lalu mengisi ulang 6 tabel dalam satu transaksi.
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env
+cp .env.example .env            # VITE_API_BASE_URL=http://localhost:8000/api/v1
 npm run dev
 ```
 
-Buka http://localhost:5173. Halaman awal menampilkan status koneksi ke backend.
+Buka http://localhost:5173. Halaman awal adalah daftar kebutuhan procurement.
 
 ### ML
 
@@ -64,7 +103,96 @@ pip install -r requirements.txt
 python -m generator              # generate data sintetis ke ml/data/raw/ (seed default 15037)
 ```
 
-Spesifikasi dan cara kerja generator data sintetis ada di [ml/README.md](ml/README.md). Notebook disimpan di `ml/notebooks/`. Kontribusi fitur (SHAP) dihitung langsung dari LightGBM lewat `predict(..., pred_contrib=True)` yang memakai algoritma TreeSHAP bawaan, jadi tidak perlu paket `shap`.
+Notebook dijalankan berurutan: `01_eda.ipynb`, `02_baseline.ipynb`, `03_lightgbm.ipynb`. Spesifikasi generator ada di [ml/README.md](ml/README.md). Kontribusi fitur dihitung langsung dari LightGBM lewat `predict(..., pred_contrib=True)` yang memakai algoritma TreeSHAP bawaan, jadi tidak perlu paket `shap`.
+
+## Dokumentasi API
+
+Semua endpoint ada di bawah prefix `/api/v1` dan terdokumentasi interaktif di `/docs` (Swagger bawaan FastAPI).
+
+| Method | Path | Keterangan |
+| --- | --- | --- |
+| GET | `/health` | Status aplikasi, database, dan versi model ranking aktif |
+| GET | `/vendors` | Daftar vendor, filter pencarian, kategori, dan status aktif |
+| POST | `/vendors` | Tambah vendor |
+| GET | `/vendors/{id}` | Detail vendor |
+| PATCH | `/vendors/{id}` | Ubah sebagian data vendor |
+| DELETE | `/vendors/{id}` | Nonaktifkan vendor (soft delete lewat `is_active`) |
+| GET | `/materials` | Daftar material |
+| POST | `/materials` | Tambah material (kode unik) |
+| GET | `/materials/{id}` | Detail material |
+| PATCH | `/materials/{id}` | Ubah material |
+| DELETE | `/materials/{id}` | Hapus material (409 kalau masih dipakai) |
+| GET | `/vendor-offers` | Daftar penawaran vendor (harga, MOQ, lead time, kapasitas) |
+| POST | `/vendor-offers` | Tambah penawaran (satu per pasangan vendor dan material) |
+| GET | `/vendor-offers/{id}` | Detail penawaran |
+| PATCH | `/vendor-offers/{id}` | Ubah penawaran |
+| DELETE | `/vendor-offers/{id}` | Hapus penawaran |
+| GET | `/procurement-requests` | Daftar kebutuhan, paginasi server (`page`, `page_size`) dan filter status |
+| POST | `/procurement-requests` | Buat kebutuhan procurement |
+| GET | `/procurement-requests/{id}` | Detail kebutuhan |
+| POST | `/recommendations` | Inference API: filter keras dan model ranking untuk `request_id`, hasil disimpan ke database |
+| GET | `/recommendations/{request_id}` | Hasil peringkat tersimpan, termasuk vendor gugur dan alasannya |
+| POST | `/recommendations/{request_id}/explanation` | Penjelasan Gemini (atau template kalau Gemini gagal) |
+
+Format response sama untuk semua endpoint, termasuk error:
+
+```json
+{ "status": 200, "message": "Success", "timestamp": "2026-11-21T15:20:53+07:00", "data": {} }
+```
+
+- 422: `message` berbunyi "Data <entitas> tidak valid" dan `data` berisi daftar `{ "field", "error" }` untuk semua field yang gagal
+- 404 dan 409: `data` bernilai `null`, pesan 409 menyebut aturan bisnis yang dilanggar
+- 503: database atau modul ranking tidak tersedia
+- endpoint list yang dipaginasi menambah `meta: { "page", "page_size", "total" }`
+
+## Data dan Model
+
+### Data sintetis
+
+Data Firaza asli tidak tersedia, jadi data dibuat oleh generator sendiri di `ml/generator` (seed utama 15037). Generator meniru perilaku vendor, musim ramai (Ramadan, Syawal, Dzulhijjah), dan hasil pesanan. Spesifikasi lengkap ada di [ml/README.md](ml/README.md).
+
+| Item | Jumlah |
+| --- | --- |
+| Periode | 1 April 2025 s.d. 30 September 2026 (18 bulan) |
+| Material | 15 (5 bahan produk, 5 jasa bordir dan printing, 5 packaging) |
+| Vendor | 28 (10 bahan, 9 jasa, 9 packaging) |
+| Penawaran vendor | 77 |
+| Procurement request | 2.102 (train 1.475, val 397, test 230) |
+| Transaksi | 2.050 |
+| Kandidat (pasangan request dan vendor) | 9.754, dengan 7.191 kandidat lolos filter keras yang diberi label grade 0 sampai 3 |
+
+Label relevansi dihitung dari simulasi kontrafaktual hasil pesanan tiap kandidat (peluang tepat waktu, perkiraan cacat, biaya efektif) dengan bobot menurut prioritas. Karakter vendor yang dipakai simulasi disimpan terpisah di `_hidden_vendor_traits.csv` dan tidak pernah dipakai sebagai fitur. Split dilakukan berdasarkan waktu (`request_date`): train April 2025 s.d. Maret 2026, val April s.d. Juni 2026, test Juli s.d. September 2026.
+
+### Fitur
+
+| Kelompok | Fitur |
+| --- | --- |
+| Penawaran | `unit_price`, `price_rel_median`, `total_cost`, `quoted_lead_time_days`, `moq_ratio` |
+| Histori vendor | `on_time_rate`, `avg_delay_days`, `defect_rate`, `avg_rating`, `n_transactions`, `days_since_last_order`, `has_history` |
+| Konteks request | `slack_days`, `qty_capacity_ratio`, `priority_code`, `is_peak_season` |
+
+Anti leakage: metrik histori hanya dihitung dari transaksi yang hasilnya sudah diketahui sebelum `request_date`. Hal ini dibuktikan lewat uji perturbasi data masa depan di `ml/procurewise_ml/leakage_check.py`.
+
+### Model dan evaluasi
+
+LightGBM LambdaRank (`lgbm-v1`) dilatih di split train. Early stopping dan tuning kecil (12 kombinasi) hanya memakai split val, dan split test hanya dipakai sekali di akhir. Pembanding: weighted sum, TOPSIS, TOPSIS berbobot prioritas, urutan acak, dan pilihan historis. Bobot baseline ditetapkan sebelum evaluasi pertama dan tidak diubah. Detail ada di `ml/notebooks/03_lightgbm.ipynb`.
+
+Hasil di split test, grup informatif (194 grup):
+
+| Metode | NDCG@3 | Hit@1 | MRR | Peringkat 1 tepat waktu |
+| --- | --- | --- | --- | --- |
+| **LightGBM (lgbm-v1)** | **0,961** | **0,881** | **0,934** | **91,7%** |
+| Weighted sum | 0,930 | 0,835 | 0,908 | 90,9% |
+| TOPSIS prioritas | 0,925 | 0,804 | 0,897 | 90,7% |
+| TOPSIS | 0,901 | 0,773 | 0,871 | 89,8% |
+| Acak | 0,750 | 0,392 | 0,634 | 85,2% |
+| Pilihan historis | 0,736 | 0,433 | 0,619 | 87,3% |
+
+- Selisih NDCG@3 terhadap weighted sum +0,031 dengan bootstrap CI 95% +0,014 sampai +0,047 (signifikan). Selisih Hit@1 +0,046 dengan CI 0 sampai +0,098, belum signifikan.
+- Vendor peringkat 1 LightGBM lebih jarang bergrade 0 (1,4% berbanding 2,8%), tapi biayanya sedikit lebih tinggi (biaya relatif 1,064 berbanding 1,042).
+- Per segmen: keunggulan terbesar ada di request dengan sisa waktu ketat (Hit@1 0,788 berbanding 0,673) dan kategori jasa (NDCG@3 0,969 berbanding 0,908). Model kalah di packaging (NDCG@3 0,918 berbanding 0,942, 34 grup).
+- Kestabilan: dengan hyperparameter yang sama di 5 seed data lain, LightGBM unggul NDCG@3 di 5 dari 5 seed (rata-rata +0,043) dan Hit@1 di 4 dari 5 seed.
+- Fitur paling berpengaruh: `avg_rating`, `slack_days`, dan `price_rel_median`.
 
 ## Environment Variable
 
@@ -74,13 +202,15 @@ Spesifikasi dan cara kerja generator data sintetis ada di [ml/README.md](ml/READ
 | `backend/.env` | `CORS_ORIGINS` | Origin frontend yang diizinkan, dipisah koma |
 | `backend/.env` | `ENVIRONMENT` | `development` atau `production` |
 | `backend/.env` | `GEMINI_API_KEY` | API key Gemini untuk penjelasan rekomendasi. Kosong berarti penjelasan memakai template |
-| `backend/.env` | `GEMINI_MODEL` | Model Gemini, default `gemini-4-hydrogen` |
+| `backend/.env` | `GEMINI_MODEL` | Model Gemini, default `gemini-3.5-flash-lite` |
 | `backend/.env` | `GEMINI_TIMEOUT_SECONDS` | Batas waktu per percobaan ke Gemini, default 20 detik |
 | `frontend/.env` | `VITE_API_BASE_URL` | Base URL backend termasuk prefix `/api/v1` |
 
 File `.env` tidak boleh di-commit. Yang di-commit hanya `.env.example`.
 
 ## Deploy
+
+Live URL: https://procurewise-rouge.vercel.app
 
 Frontend dan backend dideploy sebagai satu project Vercel dengan fitur Services (satu domain), diatur oleh `vercel.json` di root repo. Database memakai Neon PostgreSQL.
 
@@ -97,7 +227,7 @@ Di fungsi serverless (env `VERCEL=1` dari Vercel), koneksi database memakai Null
 | --- | --- |
 | `DATABASE_URL` | URL koneksi Neon |
 | `GEMINI_API_KEY` | API key Gemini |
-| `GEMINI_MODEL` | model Gemini yang dipakai, contoh `gemini-4-hydrogen` |
+| `GEMINI_MODEL` | model Gemini yang dipakai, contoh `gemini-3.5-flash-lite` |
 | `ENVIRONMENT` | `production` |
 | `CORS_ORIGINS` | domain project Vercel, contoh `https://procurewise.vercel.app` (tidak wajib karena satu domain) |
 | `VITE_API_BASE_URL` | `/api/v1` |
@@ -106,7 +236,9 @@ Di fungsi serverless (env `VERCEL=1` dari Vercel), koneksi database memakai Null
 
 Aturan proyek: dependency hanya boleh berlisensi MIT, BSD, atau Apache 2.0. Lisensi GPL, AGPL, LGPL, MPL, dan EPL tidak dipakai sebagai dependency langsung. Daftar di bawah dicek dari metadata paket yang terpasang pada 12 Oktober 2026.
 
-### Backend (`backend/requirements.txt`)
+### Backend (`backend/pyproject.toml` dan `backend/requirements.txt`)
+
+Kedua file berisi versi yang sama. `pyproject.toml` beserta `uv.lock` dipakai build Vercel, `requirements.txt` untuk instalasi pip lokal. Paket lokal `procurewise-ml` (folder `ml/`, lisensi MIT sama dengan repo) ikut dipasang lewat `[tool.uv.sources]`.
 
 | Paket | Versi | Lisensi |
 | --- | --- | --- |
@@ -200,9 +332,24 @@ Dependency transitif ML seluruhnya MIT, BSD, atau Apache-2.0, kecuali typing_ext
 - **certifi (MPL-2.0)** ikut terpasang sebagai dependency transitif google-genai (lewat requests dan httpx2) untuk daftar sertifikat TLS. Paket ini tidak dimodifikasi dan statusnya masih menunggu konfirmasi Dicoding bersama MPL-2.0 transitif lainnya.
 - **cffi (MIT-0)** adalah varian MIT tanpa kewajiban mencantumkan atribusi, jadi lebih longgar dari MIT.
 
+## Keterbatasan
+
+- **LightGBM di runtime serverless Vercel.** Di runtime serverless Vercel LightGBM tidak dapat dimuat (kemungkinan karena library sistem OpenMP `libgomp.so.1` tidak tersedia), sehingga ranking baru di live URL memakai fallback weighted sum. Aplikasi tidak crash: `/api/v1/health` menunjukkan `weighted-sum-fallback` dan UI menampilkan label metode cadangan. Model `lgbm-v1` berjalan normal di lingkungan lokal atau server biasa. Rekomendasi demo #2103 dan #2104 disusun dengan `lgbm-v1`.
+- **Pilihan model Gemini.** Model Gemini yang lebih besar butuh waktu lebih dari batas 20 detik untuk prompt berstruktur (output JSON dengan schema), jadi dipilih varian `gemini-3.5-flash-lite`. Kalau Gemini tetap gagal, penjelasan memakai template berbasis aturan dan sumbernya ditandai di panel.
+- **Data sepenuhnya sintetis.** Hasil model menunjukkan pendekatan ini bekerja di dunia yang diasumsikan generator, belum membuktikan performa di data asli Firaza.
+- **Referensi harga belum dikalibrasi.** Harga, MOQ, dan lead time acuan di `ml/generator/price_reference.yaml` masih perkiraan awal, belum diisi dari listing marketplace (prosedur kalibrasi ada di ml/README.md bagian 17).
+- **Musim ramai belum teruji bersih.** Split test (Juli s.d. September 2026) tidak berisi request musim ramai. Model unggul di musim ramai pada split val, tapi val dipakai untuk tuning.
+- **Model kalah di kategori packaging** dibanding weighted sum di split test.
+- Belum ada autentikasi user. Aplikasi ditujukan untuk owner atau admin Firaza.
+
 ## Sumber Data dan Referensi
 
-Belum ada. Dataset sintetis dan referensi harga marketplace akan dicatat di bagian ini.
+- **Dataset**: seluruh data adalah data sintetis buatan sendiri dari generator di `ml/generator` (seed 15037), bukan dataset publik. Spesifikasi, asumsi, dan penanda parameter ([ASUMSI], [KALIBRASI], [MP]) dicatat di [ml/README.md](ml/README.md).
+- **Referensi harga**: nilai harga, MOQ, dan lead time acuan per material di `ml/generator/price_reference.yaml` masih perkiraan awal dan belum dikalibrasi dari marketplace (lihat bagian Keterbatasan).
+- **Library**: semua library beserta versi dan lisensinya dicatat di bagian SBOM.
+- **Model AI**: LightGBM LambdaRank (Ke dkk., "LightGBM: A Highly Efficient Gradient Boosting Decision Tree", NeurIPS 2017), dokumentasi https://lightgbm.readthedocs.io. Kontribusi fitur memakai TreeSHAP (Lundberg dkk., 2020) yang sudah ada di LightGBM.
+- **Generative AI**: Google Gemini API lewat SDK `google-genai`, dokumentasi https://ai.google.dev/gemini-api/docs.
+- **Baseline**: TOPSIS (Hwang dan Yoon, 1981) dan weighted sum sebagai pembanding multi-kriteria.
 
 ## Lisensi
 
