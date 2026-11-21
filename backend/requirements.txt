@@ -10,5 +10,7 @@ pydantic-settings==2.15.0
 numpy==2.5.4
 pandas==3.0.6
 lightgbm==4.7.0
+# paket lokal ml/ (procurewise_ml + file model), dipasang biasa bukan editable supaya ikut ke bundle Vercel
+../ml
 # SDK resmi Gemini untuk penjelasan rekomendasi
 google-genai==3.6.1

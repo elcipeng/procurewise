@@ -2,31 +2,45 @@
 
 filter keras, fitur, dan baseline diimpor dari modul ML yang sama dengan training, tidak ditulis ulang di sini.
 kalau model LightGBM gagal dimuat atau gagal memprediksi, ranking memakai baseline weighted sum
-supaya aplikasi tetap memberi rekomendasi.
+supaya aplikasi tetap memberi rekomendasi. kalau modul procurewise_ml sendiri gagal diimpor, aplikasi tetap
+hidup (health dan CRUD jalan) dan hanya pembuatan rekomendasi yang menjawab 503.
 """
 
 import logging
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 import pandas as pd
 
 from app.core.config import get_settings
-
-_ML_DIR = str(get_settings().ml_dir)
-if _ML_DIR not in sys.path:
-    sys.path.insert(0, _ML_DIR)
-
-from procurewise_ml import baselines, features, filters  # noqa: E402
-from procurewise_ml import config as ml_config  # noqa: E402
+from app.core.errors import AppError
 
 logger = logging.getLogger(__name__)
 
 FALLBACK_MODEL_VERSION = "weighted-sum-fallback"
+ML_UNAVAILABLE_VERSION = "ml-unavailable"
+ML_UNAVAILABLE_MESSAGE = "Modul ranking belum tersedia di server, rekomendasi belum bisa dibuat"
 TOP_CONTRIBUTIONS = 3
 # satu request di-ranking sendiri, jadi id grup cukup konstanta
 GROUP_ID = 0
+
+# saat development folder ml/ di repo didahulukan supaya perubahan modul langsung terpakai,
+# di Vercel folder itu tidak ada sehingga yang dipakai paket procurewise_ml terinstal di site-packages
+_ML_DIR = get_settings().ml_dir
+if _ML_DIR.is_dir() and str(_ML_DIR) not in sys.path:
+    sys.path.insert(0, str(_ML_DIR))
+
+try:
+    import procurewise_ml
+    from procurewise_ml import baselines, features, filters
+    from procurewise_ml import config as ml_config
+except Exception:
+    logger.exception("modul procurewise_ml gagal diimpor, rekomendasi dimatikan tapi aplikasi tetap jalan")
+    procurewise_ml = baselines = features = filters = ml_config = None
+
+ML_AVAILABLE = procurewise_ml is not None
 
 
 @dataclass(frozen=True)
@@ -47,11 +61,13 @@ class RankingResult:
 @lru_cache
 def load_model() -> LoadedModel | None:
     """muat model sekali per proses. None berarti ranking memakai fallback weighted sum."""
+    if not ML_AVAILABLE:
+        return None
     try:
         # lightgbm diimpor di sini supaya kegagalan import juga jatuh ke fallback, bukan mematikan aplikasi
         from procurewise_ml import ranker
 
-        booster, metadata = ranker.load_model(get_settings().model_dir)
+        booster, metadata = ranker.load_model(_model_dir())
         # backend wajib memakai urutan fitur yang sama dengan saat training
         if metadata["feature_columns"] != list(ml_config.FEATURE_COLUMNS):
             raise ValueError("urutan fitur model berbeda dengan procurewise_ml.config")
@@ -61,7 +77,18 @@ def load_model() -> LoadedModel | None:
         return None
 
 
+def _model_dir() -> Path:
+    override = get_settings().ml_model_dir
+    if override:
+        return override
+    # paket terinstal membawa model di procurewise_ml/models, sedangkan di repo model ada di ml/models
+    packaged = Path(procurewise_ml.__file__).parent / "models"
+    return packaged if packaged.is_dir() else _ML_DIR / "models"
+
+
 def active_model_version() -> str:
+    if not ML_AVAILABLE:
+        return ML_UNAVAILABLE_VERSION
     model = load_model()
     return model.version if model else FALLBACK_MODEL_VERSION
 
@@ -76,6 +103,8 @@ def rank_candidates(
     fitur dihitung untuk semua kandidat (median harga memakai semua penawaran, sama seperti training),
     tapi hanya kandidat yang lolos filter keras yang diberi skor dan peringkat.
     """
+    if not ML_AVAILABLE:
+        raise AppError(503, ML_UNAVAILABLE_MESSAGE)
     requests = pd.DataFrame([{**request, "id": GROUP_ID}])
     # budget kosong harus NaN (bukan None) supaya filter melebihi_budget melewatinya
     requests["max_budget"] = pd.to_numeric(requests["max_budget"]).astype(float)

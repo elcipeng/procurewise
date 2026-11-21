@@ -31,7 +31,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
-pip install -r requirements.txt
+pip install -r requirements.txt  # ikut memasang ../ml sebagai paket procurewise-ml
 cp .env.example .env            # lalu isi DATABASE_URL
 uvicorn app.main:app --reload
 ```
@@ -86,7 +86,7 @@ Frontend dan backend dideploy sebagai satu project Vercel dengan fitur Services 
 
 | Service | Root | Keterangan |
 | --- | --- | --- |
-| `backend` | `backend/` | FastAPI (`app.main:app`) sebagai fungsi Python. Modul `ml/procurewise_ml` dan model `ml/models` ikut dibundel lewat `includeFiles` karena dipakai saat inference |
+| `backend` | `backend/` | FastAPI (`app.main:app`) sebagai fungsi Python. Fungsi hanya berisi folder `backend/`, jadi `ml/` dipasang sebagai paket `procurewise-ml` lewat baris `../ml` di `backend/requirements.txt`. Modul `procurewise_ml` dan file model `lgbm_v1` ikut masuk site-packages |
 | `frontend` | `frontend/` | Vite, output `dist`, semua rute diarahkan ke `index.html` supaya rute seperti `/kebutuhan/2103` bisa dibuka langsung |
 
 Rewrite di `vercel.json` mengirim `/api/(.*)` ke service `backend` dan sisanya ke `frontend`. Backend menerima path lengkap, jadi route tetap `/api/v1/...`. Karena satu domain, frontend memanggil API lewat path relatif `/api/v1`.

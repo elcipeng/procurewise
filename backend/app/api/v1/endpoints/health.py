@@ -21,7 +21,8 @@ class HealthData(BaseModel):
     status: Literal["ok"]
     version: str
     database: Literal["ok", "unavailable", "not_configured"]
-    # versi model ranking yang aktif, weighted-sum-fallback berarti model LightGBM gagal dimuat
+    # versi model ranking yang aktif. weighted-sum-fallback berarti model LightGBM gagal dimuat,
+    # ml-unavailable berarti modul procurewise_ml tidak terpasang sehingga rekomendasi menjawab 503
     model: str
 
 

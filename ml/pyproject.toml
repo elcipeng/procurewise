@@ -1,0 +1,22 @@
+# paket procurewise_ml dipasang ke backend lewat baris ../ml di backend/requirements.txt,
+# supaya modul fitur, filter, dan model ikut ke site-packages fungsi Vercel yang hanya berisi folder backend
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "procurewise-ml"
+version = "0.1.0"
+description = "Fitur, filter keras, baseline, dan model LightGBM LambdaRank ProcureWise"
+license = "MIT"
+requires-python = ">=3.12"
+# versi dikunci di requirements.txt masing-masing (backend dan ml), di sini cukup nama paket
+dependencies = ["numpy", "pandas", "lightgbm"]
+
+[tool.setuptools]
+packages = ["procurewise_ml", "procurewise_ml.models"]
+# file model tetap di ml/models (dipakai notebook), saat diinstal dipetakan ke procurewise_ml/models
+package-dir = { "procurewise_ml.models" = "models" }
+
+[tool.setuptools.package-data]
+"procurewise_ml.models" = ["*.txt", "*.json"]

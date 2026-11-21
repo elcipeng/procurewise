@@ -215,6 +215,9 @@ def _rejected_vendor(rec: Recommendation, vendor: Vendor, request: ProcurementRe
 
 def _reason_message(code: str, offer: OfferSnapshot, request: ProcurementRequest, unit: str) -> str:
     filters = ranking_engine.filters
+    # tanpa modul ML kode alasan tidak bisa diterjemahkan, rekomendasi lama tetap tampil dengan kode mentahnya
+    if filters is None:
+        return code
     if code == filters.REASON_UNAVAILABLE:
         return "Vendor sedang tidak menerima pesanan untuk material ini"
     if code == filters.REASON_MOQ:

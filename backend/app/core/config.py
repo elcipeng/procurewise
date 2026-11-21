@@ -24,7 +24,7 @@ def to_asyncpg_url(url: str) -> str:
     return urlunsplit((scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
-# folder ml di root repo, berisi modul procurewise_ml dan file model
+# folder ml di root repo. dipakai saat development, di Vercel folder ini tidak ada dan procurewise_ml dibaca dari paket terinstal
 REPO_ML_DIR = Path(__file__).resolve().parents[3] / "ml"
 
 
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     ml_dir: Path = REPO_ML_DIR
-    # kosong berarti ml_dir/models. kalau model tidak bisa dimuat dari sini, ranking memakai fallback weighted sum
+    # kosong berarti folder models milik procurewise_ml yang dimuat. kalau model gagal dimuat, ranking memakai fallback
     ml_model_dir: Path | None = None
 
     # kosong berarti penjelasan rekomendasi langsung memakai template tanpa memanggil Gemini
@@ -53,10 +53,6 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_database_url(cls, value: str | None) -> str | None:
         return to_asyncpg_url(value) if value else None
-
-    @property
-    def model_dir(self) -> Path:
-        return self.ml_model_dir or self.ml_dir / "models"
 
     @property
     def cors_origin_list(self) -> list[str]:
