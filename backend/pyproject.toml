@@ -1,0 +1,30 @@
+# Vercel memasang backend memakai uv dari file ini. versi dependency sama dengan requirements.txt,
+# lisensi tiap paket dicatat di README bagian SBOM
+[project]
+name = "procurewise-backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.143.0",
+    "uvicorn==0.54.0",
+    "SQLAlchemy[asyncio]==2.1.4",
+    "alembic==1.20.0",
+    "asyncpg==0.32.0",
+    "pydantic==2.14.1",
+    "pydantic-settings==2.15.0",
+    "numpy==2.5.4",
+    "pandas==3.0.6",
+    "lightgbm==4.7.0",
+    "google-genai==3.6.1",
+    # paket lokal ml/ berisi procurewise_ml dan file model lgbm_v1, dipakai saat inference
+    "procurewise-ml",
+]
+
+[tool.uv]
+# backend adalah aplikasi, bukan paket yang dibangun
+package = false
+
+[tool.uv.sources]
+# path di pyproject di-resolve relatif ke folder ini, beda dengan requirements.txt yang relatif ke cwd.
+# editable = false supaya isi paket disalin ke site-packages dan ikut ke bundle fungsi Vercel
+procurewise-ml = { path = "../ml", editable = false }
