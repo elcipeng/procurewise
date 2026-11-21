@@ -1,3 +1,10 @@
+---
+title: ProcureWise API
+sdk: docker
+app_port: 7860
+license: mit
+---
+
 # ProcureWise
 
 Web app decision support untuk procurement UMKM. User memasukkan kebutuhan pengadaan, model machine learning menyusun ranking vendor, lalu Gemini menjelaskan alasan dan trade-off dari ranking tersebut. Keputusan akhir tetap ada di tangan user (owner/admin).
@@ -84,26 +91,30 @@ File `.env` tidak boleh di-commit. Yang di-commit hanya `.env.example`.
 
 | Bagian | Layanan | Konfigurasi |
 | --- | --- | --- |
-| Backend | Render (Web Service, Python) | root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, health check `/api/v1/health` |
+| Backend | Hugging Face Spaces (SDK Docker, CPU basic) | `Dockerfile` di root repo menyalin `backend/`, `ml/procurewise_ml/`, dan `ml/models/`, lalu menjalankan `uvicorn app.main:app --host 0.0.0.0 --port 7860`. Blok YAML di awal README ini adalah konfigurasi Space (`sdk: docker`, `app_port: 7860`) |
 | Frontend | Vercel (Vite) | root directory `frontend`, build `npm run build`, output `dist`. `vercel.json` mengarahkan semua rute ke `index.html` supaya rute seperti `/kebutuhan/2103` bisa dibuka langsung |
 | Database | Neon PostgreSQL | migrasi dijalankan dari lokal dengan `alembic upgrade head` |
 
-Backend membutuhkan folder `ml/` dari repo yang sama, karena modul `procurewise_ml` (filter keras dan fitur) dan file model `ml/models/lgbm_v1.txt` dipakai saat inference. Di Render, lokasinya diatur lewat environment variable:
+Backend membutuhkan modul `procurewise_ml` (filter keras dan fitur) dan file model `ml/models/lgbm_v1.txt` saat inference. Di dalam container keduanya ada di `/app/ml`, dan lokasinya sudah diatur di `Dockerfile` lewat `ML_DIR=/app/ml` dan `ML_MODEL_DIR=/app/ml/models`.
 
-| Variabel (Render) | Nilai |
+Menjalankan image yang sama secara lokal:
+
+```bash
+docker build -t procurewise-api .
+docker run -p 7860:7860 --env-file backend/.env procurewise-api
+```
+
+| Secret atau variable (Settings Space) | Nilai |
 | --- | --- |
-| `PYTHON_VERSION` | `3.14.6` |
-| `DATABASE_URL` | URL koneksi Neon |
+| `DATABASE_URL` (secret) | URL koneksi Neon |
+| `GEMINI_API_KEY` (secret) | API key Gemini |
+| `GEMINI_MODEL` | model Gemini yang dipakai, contoh `gemini-4-hydrogen` |
 | `CORS_ORIGINS` | URL frontend di Vercel, contoh `https://procurewise.vercel.app` |
 | `ENVIRONMENT` | `production` |
-| `ML_DIR` | `/opt/render/project/src/ml` |
-| `ML_MODEL_DIR` | `/opt/render/project/src/ml/models` |
-| `GEMINI_API_KEY` | API key Gemini |
-| `GEMINI_MODEL` | model Gemini yang dipakai |
 
 | Variabel (Vercel) | Nilai |
 | --- | --- |
-| `VITE_API_BASE_URL` | URL backend Render ditambah `/api/v1`, contoh `https://procurewise-api.onrender.com/api/v1` |
+| `VITE_API_BASE_URL` | URL Space ditambah `/api/v1`, formatnya `https://<user>-<space>.hf.space/api/v1` |
 
 ## SBOM (Software Bill of Materials)
 

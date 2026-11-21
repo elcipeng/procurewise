@@ -2,7 +2,7 @@ import axios, { type AxiosResponse, isAxiosError } from 'axios'
 import type { ApiEnvelope, FieldError } from '@/types/api'
 import { trackSlowRequests } from './slowRequests'
 
-// cukup lama untuk menunggu server render yang baru bangun dari tidur
+// cukup lama untuk menunggu server hosting gratis yang baru bangun dari tidur
 const REQUEST_TIMEOUT_MS = 60_000
 const NETWORK_ERROR_MESSAGE = 'Server tidak dapat dihubungi. Periksa koneksi lalu coba lagi.'
 

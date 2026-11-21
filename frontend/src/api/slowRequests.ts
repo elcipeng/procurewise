@@ -1,6 +1,6 @@
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
-// server render paket gratis tidur saat sepi, request pertama setelahnya bisa makan puluhan detik
+// server hosting gratis tidur saat sepi, request pertama setelahnya bisa makan puluhan detik
 const SLOW_THRESHOLD_MS = 5000
 // penjelasan Gemini memang lama dan sudah punya state loading sendiri di panelnya
 const EXCLUDED_SUFFIXES = ['/explanation']
